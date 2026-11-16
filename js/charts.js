@@ -1,6 +1,6 @@
 // 房屋試算｜圖表（canvas，自己畫，不用外部套件）。只管畫面，不碰計算。
 // drawChart(canvas, spec, hoverIndex)
-// spec = { x:[標籤], series:[{name, color, data:[數字|null], axis:'L'|'R', type:'line'|'step'|'area'|'bar', stack, dash}],
+// spec = { x:[標籤], series:[{name, color, data:[數字|null], axis:'L'|'R', type:'line'|'step'|'area'|'bar', stack（長條或面積堆疊）, dash}],
 //          fmtL, fmtR, marks:[{i, color, label}], now:索引, onHover(i) }
 const CH = { spec: null, hover: -1 };
 
@@ -51,7 +51,7 @@ function drawChart(cv, spec, hi = -1) {
  // 今天
  if (spec.now != null && spec.now >= 0 && spec.now < N) {
   const x = xAt(spec.now); c.strokeStyle = '#0f766e'; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(x, pad.t); c.lineTo(x, pad.t + chh); c.stroke(); c.setLineDash([]);
-  c.fillStyle = '#0f766e'; c.textAlign = 'left'; c.fillText('今天', x + 3, pad.t + 9);
+  c.fillStyle = '#0f766e'; c.textAlign = x > W - pad.r - 30 ? 'right' : 'left'; c.fillText('今天', x + (x > W - pad.r - 30 ? -3 : 3), pad.t + 9);
  }
  // 長條（可堆疊）
  if (isBar) {
@@ -66,8 +66,21 @@ function drawChart(cv, spec, hi = -1) {
    c.globalAlpha = 1;
   }
  }
+ // 堆疊面積（例如本金＋利息＝月付）
+ const abase = new Array(N).fill(0), atop = {};
+ for (const s of spec.series.filter(s => s.type === 'area' && s.stack)) {
+  const top = s.data.map((v, i) => abase[i] + (+v || 0));
+  c.beginPath();
+  for (let i = 0; i < N; i++) { const X = xAt(i), Y = yL(top[i]); if (i) c.lineTo(X, Y); else c.moveTo(X, Y); }
+  for (let i = N - 1; i >= 0; i--) c.lineTo(xAt(i), yL(abase[i]));
+  c.closePath(); c.globalAlpha = 0.5; c.fillStyle = s.color; c.fill(); c.globalAlpha = 1;
+  c.strokeStyle = s.color; c.lineWidth = 1.5; c.beginPath();
+  for (let i = 0; i < N; i++) { const X = xAt(i), Y = yL(top[i]); if (i) c.lineTo(X, Y); else c.moveTo(X, Y); }
+  c.stroke();
+  atop[s.name] = top.slice(); for (let i = 0; i < N; i++) abase[i] = top[i];
+ }
  // 線
- for (const s of spec.series.filter(s => s.type !== 'bar')) {
+ for (const s of spec.series.filter(s => s.type !== 'bar' && !(s.type === 'area' && s.stack))) {
   const y = s.axis === 'R' ? yR : yL;
   c.strokeStyle = s.color; c.lineWidth = s.width || 2; c.setLineDash(s.dash || []);
   c.beginPath(); let started = false, px = 0, py = 0;
@@ -93,7 +106,8 @@ function drawChart(cv, spec, hi = -1) {
  if (hi >= 0 && hi < N) {
   const x = xAt(hi); c.strokeStyle = '#334155'; c.lineWidth = 1; c.beginPath(); c.moveTo(x, pad.t); c.lineTo(x, pad.t + chh); c.stroke();
   for (const s of spec.series.filter(s => s.type !== 'bar')) {
-   const v = s.data[hi]; if (v == null) continue;
+   let v = s.data[hi]; if (v == null) continue;
+   if (s.type === 'area' && s.stack && atop[s.name]) v = atop[s.name][hi];
    c.fillStyle = s.color; c.beginPath(); c.arc(x, (s.axis === 'R' ? yR : yL)(v), 3.5, 0, 7); c.fill();
   }
  }
