@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>（舊版）通用房產投資與出租評估試算器</title>
+<style>
+  * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { margin: 0; padding: 12px; background: #f5f7fa; color: #333; }
+  h2 { font-size: 18px; text-align: center; margin: 6px 0 10px; color: #1a202c; }
+  
+  /* 頂部固定圖表區 */
+  .sticky-chart { position: sticky; top: 0; background: #fff; z-index: 100; border-radius: 12px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 12px; }
+  .chart-container { position: relative; height: 190px; width: 100%; }
+  canvas { width: 100%; height: 100%; display: block; }
+  
+  .legend { display: flex; justify-content: center; gap: 16px; font-size: 11px; margin-top: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.blue { background: #2563eb; }
+  .dot.green { background: #16a34a; }
+
+  .summary-cards { display: flex; gap: 8px; margin-top: 8px; }
+  .card { flex: 1; background: #f8fafc; border-radius: 8px; padding: 8px; text-align: center; border: 1px solid #e2e8f0; }
+  .card-title { font-size: 11px; color: #64748b; }
+  .card-value { font-size: 15px; font-weight: bold; margin-top: 2px; }
+  .card-value.blue { color: #2563eb; }
+  .card-value.green { color: #16a34a; }
+
+  /* 滑桿控制區 */
+  .controls-panel { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 12px; }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; }
+  .panel-title { font-size: 14px; font-weight: 700; color: #1e293b; }
+  .panel-btns { display: flex; gap: 6px; }
+
+  .lock-btn, .reset-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+  }
+  .reset-btn:active { background: #e2e8f0; }
+
+  .control-group { margin-bottom: 14px; }
+  .control-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 4px; font-weight: 600; color: #475569; }
+  .control-title-box { display: flex; align-items: center; gap: 4px; }
+  .single-lock-btn { border: none; background: transparent; font-size: 14px; cursor: pointer; padding: 0 2px; }
+  .control-value { color: #2563eb; font-size: 14px; font-weight: 700; }
+  
+  select, input[type=range] { 
+    width: 100%; 
+    outline: none; 
+  }
+
+  input[type=range] {
+    height: 8px; 
+    background: #cbd5e1; 
+    border-radius: 4px; 
+    -webkit-appearance: none; 
+    touch-action: pan-y;
+  }
+  input[type=range]::-webkit-slider-thumb { 
+    -webkit-appearance: none; 
+    width: 20px; 
+    height: 20px; 
+    border-radius: 50%; 
+    background: #2563eb; 
+    cursor: pointer; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  input[type=range]:disabled { opacity: 0.4; cursor: not-allowed; }
+  input[type=range]:disabled::-webkit-slider-thumb { background: #94a3b8; }
+
+  select {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 13px;
+    background: #fff;
+    color: #334155;
+    margin-top: 2px;
+  }
+
+  /* 年度明細數據表 */
+  .table-panel { background: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 12px; }
+  .table-title { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 8px; text-align: center; }
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: right; white-space: nowrap; }
+  th { background: #f1f5f9; color: #475569; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid #cbd5e1; }
+  th:first-child, td:first-child { text-align: center; }
+  td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; }
+  tr:nth-child(even) { background: #f8fafc; }
+  .txt-blue { color: #2563eb; font-weight: 600; }
+  .txt-green { color: #16a34a; font-weight: 600; }
+
+  /* 說明卡片 */
+  .info-panel { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); font-size: 12px; color: #475569; line-height: 1.6; }
+  .info-title { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+  .info-list { padding-left: 18px; margin: 0; }
+  .info-list li { margin-bottom: 8px; }
+  .info-list ul { padding-left: 16px; margin-top: 4px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+  <h2>（舊版）通用房產投資與出租評估試算器</h2>
+  <div style="text-align:center;font-size:12px;margin:-4px 0 10px"><a href="./">← 回新版房屋試算</a>｜舊版的稅率級距與現金流算法有已知問題，新版會在出租、出售、情境比較中重寫</div>
+
+  <!-- 頂部固定圖表區 -->
+  <div class="sticky-chart">
+    <div class="chart-container"><canvas id="calcCanvas"></canvas></div>
+    <div class="legend">
+      <div class="legend-item"><span class="dot blue"></span> 繼續持有/出租淨資產</div>
+      <div class="legend-item"><span class="dot green"></span> 賣房轉投資總累積</div>
+    </div>
+    <div class="summary-cards">
+      <div class="card">
+        <div class="card-title" id="titleHold">10年後出租總淨資產</div>
+        <div class="card-value blue" id="sumHold">-- 萬</div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="titleSell">第2年後賣房轉投資總淨資產</div>
+        <div class="card-value green" id="sumSell">-- 萬</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 控制面板 -->
+  <div class="controls-panel">
+    <div class="panel-header">
+      <span class="panel-title">🎛️ 評估參數設定 (第0年起算)</span>
+      <div class="panel-btns">
+        <button class="reset-btn" onclick="resetDefaults()">↺ 重置預設</button>
+        <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔓 全局未鎖定</button>
+      </div>
+    </div>
+
+    <!-- 購屋金額與貸款設定 -->
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="purchase_price" onclick="toggleSingleLock(this)">🔓</button>
+          <span>購屋總價/初始估值 (萬元)</span>
+        </div>
+        <span class="control-value" id="val_purchase">1500 萬</span>
+      </div>
+      <input type="range" id="purchase_price" min="500" max="4000" step="50" value="1500">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="loan_ratio" onclick="toggleSingleLock(this)">🔓</button>
+          <span>房貸成數 (%) [自備款: <span id="val_downpayment">300</span>萬]</span>
+        </div>
+        <span class="control-value" id="val_loan_ratio">80 %</span>
+      </div>
+      <input type="range" id="loan_ratio" min="50" max="85" step="5" value="80">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="total_years" onclick="toggleSingleLock(this)">🔓</button>
+          <span>評估總年數 (1～10年)</span>
+        </div>
+        <span class="control-value" id="val_total_years">10 年</span>
+      </div>
+      <input type="range" id="total_years" min="1" max="10" step="1" value="10">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="sell_year" onclick="toggleSingleLock(this)">🔓</button>
+          <span>預計第幾年賣房轉投資 (年後)</span>
+        </div>
+        <span class="control-value" id="val_sell">2 年後</span>
+      </div>
+      <input type="range" id="sell_year" min="1" max="10" step="1" value="2">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="house_growth" onclick="toggleSingleLock(this)">🔓</button>
+          <span>預期房價年增率 (%)</span>
+        </div>
+        <span class="control-value" id="val_growth">2.0 %</span>
+      </div>
+      <input type="range" id="house_growth" min="-2.0" max="6.0" step="0.1" value="2.0">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="grace_period" onclick="toggleSingleLock(this)">🔓</button>
+          <span>房貸寬限期 (0～5年)</span>
+        </div>
+        <span class="control-value" id="val_grace">0 年</span>
+      </div>
+      <input type="range" id="grace_period" min="0" max="5" step="1" value="0">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="mortgage_rate" onclick="toggleSingleLock(this)">🔓</button>
+          <span>房貸年利率 (%)</span>
+        </div>
+        <span class="control-value" id="val_rate">2.25 %</span>
+      </div>
+      <input type="range" id="mortgage_rate" min="1.50" max="4.00" step="0.01" value="2.25">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="monthly_rent" onclick="toggleSingleLock(this)">🔓</button>
+          <span>預估每月租金收入 (元)</span>
+        </div>
+        <span class="control-value" id="val_rent">35,000 元</span>
+      </div>
+      <input type="range" id="monthly_rent" min="15000" max="80000" step="1000" value="35000">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="monthly_mgmt" onclick="toggleSingleLock(this)">🔓</button>
+          <span>社區管理費 (元/月)</span>
+        </div>
+        <span class="control-value" id="val_mgmt">2,500 元</span>
+      </div>
+      <input type="range" id="monthly_mgmt" min="0" max="15000" step="100" value="2500">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="monthly_maint" onclick="toggleSingleLock(this)">🔓</button>
+          <span>出租雜支/空置/修繕預備 (元/月)</span>
+        </div>
+        <span class="control-value" id="val_maint">1,000 元</span>
+      </div>
+      <input type="range" id="monthly_maint" min="0" max="10000" step="100" value="1000">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="tax_mode" onclick="toggleSingleLock(this)">🔓</button>
+          <span>租金申報模式 / 所得稅率</span>
+        </div>
+        <span class="control-value" id="val_tax_mode_lbl">社宅 (20%級距)</span>
+      </div>
+      <select id="tax_mode" onchange="calculate()">
+        <option value="social_20" selected>社會住宅包租代管 (適用個人綜所稅 20%)</option>
+        <option value="social_12">社會住宅包租代管 (適用個人綜所稅 12%)</option>
+        <option value="social_30">社會住宅包租代管 (適用個人綜所稅 30%)</option>
+        <option value="normal_20">一般合法出租 (43%標準費用率, 20%綜所稅)</option>
+        <option value="normal_12">一般合法出租 (43%標準費用率, 12%綜所稅)</option>
+        <option value="none">不計所得稅 (自住或個人特別安排)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <div class="control-title-box">
+          <button class="single-lock-btn" data-target="reinvest_rate" onclick="toggleSingleLock(this)">🔓</button>
+          <span>賣房後轉投資年化報酬率 (%)</span>
+        </div>
+        <span class="control-value" id="val_reinvest">6.0 %</span>
+      </div>
+      <input type="range" id="reinvest_rate" min="1.0" max="12.0" step="0.1" value="6.0">
+    </div>
+  </div>
+
+  <!-- 年度明細數據表 -->
+  <div class="table-panel">
+    <div class="table-title">📊 歷年房價與資產明細表 (單位: 萬元)</div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>年份</th>
+            <th>預估房價</th>
+            <th>剩餘房貸</th>
+            <th>持有/出租資產</th>
+            <th>賣房轉投資</th>
+          </tr>
+        </thead>
+        <tbody id="detailTableBody">
+          <!-- 動態渲染 -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 說明卡片 -->
+  <div class="info-panel">
+    <div class="info-title">📋 通用版試算器與稅費計算說明 (第0年購屋起算)</div>
+    <ul class="info-list">
+      <li><strong>購屋與貸款設定：</strong>從第 0 年購屋時點開始評估。自備款 = 購屋總價 × (1 - 貸款成數)；房貸年限預設 30 年 (360期) 本息平均攤還。</li>
+      <li><strong>房地合一稅率級距（按取得持有年限）：</strong>
+        <ul>
+          <li>持有 2 年以內 (第 1～2 年賣)：稅率 <strong>45%</strong></li>
+          <li>持有 超過 2 年未滿 5 年 (第 3～4 年賣)：稅率 <strong>35%</strong></li>
+          <li>持有 超過 5 年未滿 10 年 (第 5～9 年賣)：稅率 <strong>20%</strong></li>
+          <li>持有 10 年以上 (第 10 年起賣)：稅率 <strong>15%</strong></li>
+        </ul>
+      </li>
+      <li><strong>租金所得稅優惠試算：</strong>
+        <ul>
+          <li><strong>社會住宅包租代管：</strong>每屋每月享 15,000 元免稅額，超過部分扣除 60% 法定費用後併入個人綜所稅。</li>
+          <li><strong>一般出租：</strong>租金收入扣除 43% 法定必要費用後併入個人綜所稅試算。</li>
+        </ul>
+      </li>
+      <li><strong>交易成本與費用：</strong>買賣仲介費與過戶雜費預設按售出房價 <strong>3%</strong> 扣除；獲利淨額扣除法定必要費用後計算房地合一稅。</li>
+    </ul>
+  </div>
+
+<script>
+  let isLocked = false;
+
+  const defaultValues = {
+    purchase_price: "1500",
+    loan_ratio: "80",
+    total_years: "10",
+    sell_year: "2",
+    house_growth: "2.0",
+    grace_period: "0",
+    mortgage_rate: "2.25",
+    monthly_rent: "35000",
+    monthly_mgmt: "2500",
+    monthly_maint: "1000",
+    tax_mode: "social_20",
+    reinvest_rate: "6.0"
+  };
+
+  function saveSettings() {
+    const settings = {};
+    Object.keys(defaultValues).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) settings[id] = el.value;
+    });
+    localStorage.setItem('general_house_calc_user_settings', JSON.stringify(settings));
+  }
+
+  function loadSettings() {
+    const saved = localStorage.getItem('general_house_calc_user_settings');
+    if (saved) {
+      try {
+        const settings = JSON.parse(saved);
+        Object.keys(settings).forEach(id => {
+          const el = document.getElementById(id);
+          if (el && settings[id] !== undefined) el.value = settings[id];
+        });
+      } catch (e) {
+        console.error("載入本機設定失敗", e);
+      }
+    }
+  }
+
+  function resetDefaults() {
+    localStorage.removeItem('general_house_calc_user_settings');
+    Object.keys(defaultValues).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = defaultValues[id];
+    });
+    calculate();
+  }
+
+  function toggleLock() {
+    isLocked = !isLocked;
+    const btn = document.getElementById('lockBtn');
+    const inputs = document.querySelectorAll('input[type=range], select');
+    const singleBtns = document.querySelectorAll('.single-lock-btn');
+
+    if (isLocked) {
+      btn.innerHTML = '🔒 全局已鎖定';
+      btn.style.background = '#ef4444';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#ef4444';
+      inputs.forEach(input => input.disabled = true);
+      singleBtns.forEach(b => b.innerHTML = '🔒');
+    } else {
+      btn.innerHTML = '🔓 全局未鎖定';
+      btn.style.background = '#f8fafc';
+      btn.style.color = '#475569';
+      btn.style.borderColor = '#cbd5e1';
+      inputs.forEach(input => input.disabled = false);
+      singleBtns.forEach(b => b.innerHTML = '🔓');
+    }
+  }
+
+  function toggleSingleLock(btn) {
+    const targetId = btn.getAttribute('data-target');
+    const input = document.getElementById(targetId);
+    input.disabled = !input.disabled;
+    btn.innerHTML = input.disabled ? '🔒' : '🔓';
+  }
+
+  function getTaxRateAndExemption(taxMode, monthlyRent) {
+    if (taxMode === 'none') return 0;
+    let taxable = 0;
+    if (taxMode.startsWith('social_')) {
+      const exempt = Math.max(0, monthlyRent - 15000);
+      taxable = exempt * (1 - 0.60);
+    } else if (taxMode.startsWith('normal_')) {
+      taxable = monthlyRent * (1 - 0.43);
+    }
+    let bracket = 0.20;
+    if (taxMode.endsWith('_12')) bracket = 0.12;
+    if (taxMode.endsWith('_30')) bracket = 0.30;
+    return taxable * bracket;
+  }
+
+  function calculate() {
+    const purchasePrice = parseFloat(document.getElementById('purchase_price').value);
+    const loanRatio = parseFloat(document.getElementById('loan_ratio').value) / 100;
+    const initialLoan = purchasePrice * loanRatio;
+    const downPayment = purchasePrice - initialLoan;
+
+    document.getElementById('val_downpayment').innerText = Math.round(downPayment * 10) / 10;
+
+    const totalYears = parseInt(document.getElementById('total_years').value);
+    let sellYear = parseInt(document.getElementById('sell_year').value);
+    
+    if (sellYear > totalYears) {
+      sellYear = totalYears;
+      document.getElementById('sell_year').value = sellYear;
+    }
+
+    const houseGrowth = parseFloat(document.getElementById('house_growth').value) / 100;
+    const gracePeriod = parseInt(document.getElementById('grace_period').value);
+    const mortgageRate = parseFloat(document.getElementById('mortgage_rate').value) / 100;
+    const monthlyRent = parseFloat(document.getElementById('monthly_rent').value);
+    const monthlyMgmt = parseFloat(document.getElementById('monthly_mgmt').value);
+    const monthlyMaint = parseFloat(document.getElementById('monthly_maint').value);
+    const taxMode = document.getElementById('tax_mode').value;
+    const reinvestRate = parseFloat(document.getElementById('reinvest_rate').value) / 100;
+
+    document.getElementById('val_purchase').innerText = purchasePrice + ' 萬';
+    document.getElementById('val_loan_ratio').innerText = (loanRatio * 100).toFixed(0) + ' %';
+    document.getElementById('val_total_years').innerText = totalYears + ' 年';
+    document.getElementById('val_sell').innerText = sellYear + ' 年後';
+    document.getElementById('val_growth').innerText = (houseGrowth * 100).toFixed(1) + ' %';
+    document.getElementById('val_grace').innerText = gracePeriod + ' 年';
+    document.getElementById('val_rate').innerText = (mortgageRate * 100).toFixed(2) + ' %';
+    document.getElementById('val_rent').innerText = monthlyRent.toLocaleString() + ' 元';
+    document.getElementById('val_mgmt').innerText = monthlyMgmt.toLocaleString() + ' 元';
+    document.getElementById('val_maint').innerText = monthlyMaint.toLocaleString() + ' 元';
+    document.getElementById('val_reinvest').innerText = (reinvestRate * 100).toFixed(1) + ' %';
+
+    document.getElementById('titleHold').innerText = totalYears + '年後持有出租淨資產';
+    document.getElementById('titleSell').innerText = '第' + sellYear + '年賣房轉投資淨資產';
+
+    const labels = ['第0年'];
+    for (let i = 1; i <= totalYears; i++) labels.push(i + '年');
+
+    const houseVals = [];
+    const loanBalances = [];
+    const holdData = [];
+    const sellData = [];
+
+    const taxCostMonthly = getTaxRateAndExemption(taxMode, monthlyRent);
+    const netRentMonthly = monthlyRent - taxCostMonthly - monthlyMgmt - monthlyMaint;
+
+    const rMonthly = mortgageRate / 12;
+    const graceMonths = gracePeriod * 12;
+    const amortMonths = 360 - graceMonths;
+
+    for (let t = 0; t <= totalYears; t++) {
+      const houseVal = purchasePrice * Math.pow(1 + houseGrowth, t);
+      houseVals.push(Math.round(houseVal * 10) / 10);
+
+      let currentLoan = initialLoan;
+      let cumulativeOutflow = 0; // 自備款算作初始投入 (萬)
+
+      for (let m = 1; m <= t * 12; m++) {
+        let payment = 0;
+        if (m <= graceMonths) {
+          payment = initialLoan * rMonthly;
+        } else {
+          let PMT = initialLoan * (rMonthly * Math.pow(1 + rMonthly, amortMonths)) / (Math.pow(1 + rMonthly, amortMonths) - 1);
+          payment = PMT;
+          let interest = currentLoan * rMonthly;
+          let principal = payment - interest;
+          currentLoan -= principal;
+        }
+        cumulativeOutflow += (payment - (netRentMonthly / 10000));
+      }
+
+      loanBalances.push(Math.round(currentLoan * 10) / 10);
+
+      // 賣房仲介費與規費 (預設 3%)
+      const brokerFee = houseVal * 0.03;
+      const gain = houseVal - purchasePrice - Math.min(30, brokerFee);
+      
+      // 房地合一稅率級距（從第 0 年起算）
+      let taxRate = 0.45;
+      if (t > 2 && t <= 5) taxRate = 0.35;
+      else if (t > 5 && t < 10) taxRate = 0.20;
+      else if (t >= 10) taxRate = 0.15;
+
+      const tax = Math.max(0, gain) * taxRate;
+
+      // 持有淨資產 = 預估房價 - 剩餘房貸 - 交易仲介費 - 房地合一稅 - 累積現金淨流出 (包含自備款槓桿成本)
+      const holdNetVal = houseVal - currentLoan - brokerFee - tax - cumulativeOutflow;
+      holdData.push(Math.round(holdNetVal * 10) / 10);
+
+      if (t <= sellYear) {
+        sellData.push(Math.round(holdNetVal * 10) / 10);
+      } else {
+        let sellLoan = initialLoan;
+        let sellOutflow = 0;
+        for (let m = 1; m <= sellYear * 12; m++) {
+          let payment = (m <= graceMonths) ? (initialLoan * rMonthly) : (initialLoan * (rMonthly * Math.pow(1 + rMonthly, amortMonths)) / (Math.pow(1 + rMonthly, amortMonths) - 1));
+          if (m > graceMonths) {
+            let interest = sellLoan * rMonthly;
+            sellLoan -= (payment - interest);
+          }
+          sellOutflow += (payment - (netRentMonthly / 10000));
+        }
+
+        const sellHouseVal = purchasePrice * Math.pow(1 + houseGrowth, sellYear);
+        const sellBrokerFee = sellHouseVal * 0.03;
+        const sellGain = sellHouseVal - purchasePrice - Math.min(30, sellBrokerFee);
+        let sellTaxRate = (sellYear <= 2) ? 0.45 : ((sellYear <= 5) ? 0.35 : ((sellYear < 10) ? 0.20 : 0.15));
+        const sellTax = Math.max(0, sellGain) * sellTaxRate;
+
+        const netCashAtSell = sellHouseVal - sellLoan - sellBrokerFee - sellTax;
+        const reinvestVal = netCashAtSell * Math.pow(1 + reinvestRate, t - sellYear) - sellOutflow;
+        sellData.push(Math.round(reinvestVal * 10) / 10);
+      }
+    }
+
+    document.getElementById('sumHold').innerText = holdData[totalYears] + ' 萬';
+    document.getElementById('sumSell').innerText = sellData[totalYears] + ' 萬';
+
+    renderTable(labels, houseVals, loanBalances, holdData, sellData);
+    drawCanvas(labels, holdData, sellData);
+    saveSettings();
+  }
+
+  function renderTable(labels, houseVals, loanBalances, holdData, sellData) {
+    const tbody = document.getElementById('detailTableBody');
+    let html = '';
+    for (let i = 0; i < labels.length; i++) {
+      html += `<tr>
+        <td>${labels[i]}</td>
+        <td>${houseVals[i]} 萬</td>
+        <td>${loanBalances[i]} 萬</td>
+        <td class="txt-blue">${holdData[i]} 萬</td>
+        <td class="txt-green">${sellData[i]} 萬</td>
+      </tr>`;
+    }
+    tbody.innerHTML = html;
+  }
+
+  function drawCanvas(labels, blueData, greenData) {
+    const canvas = document.getElementById('calcCanvas');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const padding = { top: 20, right: 15, bottom: 25, left: 35 };
+    const chartW = w - padding.left - padding.right, chartH = h - padding.top - padding.bottom;
+    const allVals = [...blueData, ...greenData];
+    let minVal = Math.floor(Math.min(...allVals) / 50) * 50;
+    let maxVal = Math.ceil(Math.max(...allVals) / 50) * 50;
+    if (minVal === maxVal) maxVal += 50;
+
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1; ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif';
+    for (let i = 0; i <= 3; i++) {
+      const yVal = minVal + (maxVal - minVal) * (i / 3);
+      const yPos = padding.top + chartH - (chartH * (i / 3));
+      ctx.beginPath(); ctx.moveTo(padding.left, yPos); ctx.lineTo(w - padding.right, yPos); ctx.stroke();
+      ctx.fillText(Math.round(yVal), 5, yPos + 3);
+    }
+
+    const stepX = chartW / (labels.length - 1);
+    labels.forEach((lbl, idx) => { ctx.fillText(lbl, padding.left + idx * stepX - 8, h - 5); });
+
+    const getCoords = (data) => data.map((val, idx) => ({
+      x: padding.left + idx * stepX,
+      y: padding.top + chartH - (chartH * ((val - minVal) / (maxVal - minVal)))
+    }));
+
+    const bluePoints = getCoords(blueData), greenPoints = getCoords(greenData);
+    ctx.beginPath(); ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2.5;
+    bluePoints.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
+
+    ctx.beginPath(); ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2.5; ctx.setLineDash([5, 5]);
+    greenPoints.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  document.querySelectorAll('input[type=range], select').forEach(input => input.addEventListener('input', calculate));
+  window.addEventListener('resize', calculate); 
+  
+  window.onload = function() {
+    loadSettings();
+    calculate();
+  };
+</script>
+</body>
+</html>
