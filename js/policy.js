@@ -29,7 +29,9 @@ const POLICY = {
   socialLease: { name: '社宅包租', note: '業者當二房東，每月付租金給你，空租由業者承擔', exempt: 15000, exp: 0.60, houseRate: 1.2, landX: 1, factor: 0.9, noVac: true },
   socialManage: { name: '社宅代管', note: '業者幫你找房客與管理，約 9 折出租，空租由你承擔', exempt: 15000, exp: 0.60, houseRate: 1.2, landX: 1, factor: 0.9, noVac: false }
  },
- houseTaxNonSelf: 3.2,   // 臺中非自住住家用房屋（沒有申報出租或沒達租金標準）最低級距
+ houseTaxNonSelf: 3.2,
+ // 轉貸（P2）：抵押權設定規費＝設定金額 × 0.1%；設定金額一般為貸款金額 × 120%。其他費用為一般行情，以銀行報價為準
+ refi: { setRate: 0.001, setRatio: 1.2, src: '房感 2026（轉貸費用與違約金）、袋鼠金融（房貸相關費用項目）', url: 'https://www.housefeel.com.tw/article/%e8%bd%89%e8%b2%b8-%e6%88%bf%e5%b1%8b%e8%bd%89%e8%b2%b8-%e6%88%bf%e8%b2%b8%e8%bd%89%e8%b2%b8' },   // 臺中非自住住家用房屋（沒有申報出租或沒達租金標準）最低級距
  rentSrc: [
   ['國土署 2026-04（社宅包租代管 15,000 元免稅＋60% 費用）', 'https://www.ctee.com.tw/news/20260430701027-430104'],
   ['臺中市地方稅務局 2026-09（出租 1.5%～2.4%、公益出租人與社宅 1.2%、非自住 3.2%～4.8%）', 'https://www.etax.nat.gov.tw/etwmain/announcement/news/evGq2x8'],

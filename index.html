@@ -103,6 +103,8 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
   <div id="rentBars" style="margin-top:8px"></div></details>
  <details class="p fd" data-k="rentCmp" open><summary class="fs"><b>📋 出租方式比較</b><span id="rentTip"></span></summary>
   <div class="w"><table class="rt" id="rentT"></table></div></details>
+ <details class="p fd" data-k="refi" open><summary class="fs"><b>🔁 轉貸試算</b><span class="ib" role="button" tabindex="0" data-tn="轉貸試算" data-tt="新青安要自住，想合法出租可以先轉貸成一般房貸。這裡比較「轉貸後出租」和「直接出租（違規）」：轉貸要付一次性費用，但不會被追回補貼、利率通常也比違規重新核定的低。&#10;一般房貸則是比較「轉貸」和「不轉貸」。&#10;回本月數＝一次性費用 ÷ 每月少付的月付（出租後第一年平均）。">ⓘ</span></summary>
+  <div id="refiRes"></div></details>
  <details class="p fd" data-k="hold" open><summary class="fs"><b>🏠 自住時的持有成本</b></summary>
   <div id="holdIn"></div></details>
  <details class="p fd" data-k="rentIn" open><summary class="fs"><b>📝 出租條件</b></summary>
@@ -144,6 +146,7 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 <li><b>新青安出租違規</b>：貸款選新青安時才會出現。<b>否</b>（預設）代表出租前會先轉貸，請填「出租後房貸利率」；<b>是</b>代表直接出租，填「違規後利率」（留空用 2.75%）。</li>
 <li><b>出租後房貸利率</b>：留空＝利率不變。有填時，在 🔑 出租頁上方的圖表會用<span style="color:#dc2626">紅色虛線</span>畫出出租後的利率或月付，紅色三角形是開始出租的月份。</li>
 <li><b>打平月租</b>：月租至少要多少，出租才和自住一樣。</li>
+<li><b>🔁 轉貸試算</b>：填了出租後房貸利率就會出現「轉貸設定」：新貸款年限（可以重新拉長）、新寬限期、開辦費、代書費、設定規費（留空自動算）、其他費用、原貸違約金。會比較轉貸後出租和直接出租（違規）的月付、總利息，算出幾個月回本；轉貸費用也會攤在出租比較表的第一年。</li>
 <li><b>出租方式比較</b>標題旁的 ⓘ：目前選的方式怎麼計算，以及新青安、自住優惠、房屋稅、地價稅的注意事項。</li>
 <li>出租對未來出售的影響（失去自住優惠）會在之後的 💸 出售頁計算。</li></ul></details>
 
@@ -171,8 +174,10 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
   <div>用自住時的稅額反推：<code>出租後房屋稅 = 自住房屋稅 ÷ 自住稅率 × 出租稅率</code>（臺中：一般出租 1.5%、公益出租人與社宅 1.2%、沒申請 3.2%）。地價稅自用住宅 2‰，出租後一般用地 10‰（5 倍）；社宅包租代管多數縣市減徵，這裡以 2‰ 估計。</div>
   <h3>出租：新青安違規</h3>
   <div>從出租那個月起，貸款利率改為「違規後利率」重算月付。違規會追回違規日起已撥的補貼，經濟上等於從出租起就沒有補貼。</div>
+  <h3>轉貸</h3>
+  <div>從出租那個月起，用當時的剩餘本金開一筆新貸款：新利率、新年限（留空＝剩下的期數）、新寬限期。一次性費用＝開辦費＋代書費＋設定規費（設定金額＝本金 × 120%，規費 0.1%）＋其他＋原貸違約金（剩餘本金 × %）。<code>回本月數 = 一次性費用 ÷ 每月少付的月付</code>。</div>
   <h3>出租 vs 自住</h3>
-  <div><code>每月現金流 = 租金收入 − 租賃所得稅 − 房貸月付 − 管理費 − 房屋稅 − 地價稅 − 修繕預備 − 自己租屋</code>，取出租後 12 個月的平均；自住時租金、所得稅、修繕、自己租屋都是 0。差額對月租是分段直線（超過免稅額後要扣所得稅），打平月租直接解出「比自住 = 0」的月租。</div>
+  <div><code>每月現金流 = 租金收入 − 租賃所得稅 − 房貸月付 − 管理費 − 房屋稅 − 地價稅 − 修繕預備 − 自己租屋 − 轉貸費用÷12</code>，取出租後 12 個月的平均；自住時租金、所得稅、修繕、自己租屋都是 0。差額對月租是分段直線（超過免稅額後要扣所得稅），打平月租直接解出「比自住 = 0」的月租。</div>
   <h3>和銀行的差異</h3>
   <div>銀行通常按日計息、月付四捨五入到元，和這裡逐月計算會有幾元到幾十元的差距；還清前最後一期也可能略有不同。</div>
   <div class="h" style="margin-top:10px" id="fmSrc"></div></div></details>
@@ -198,15 +203,15 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/tip.js?v=20261116e"></script>
-<script src="js/policy.js?v=20261116e"></script>
-<script src="js/state.js?v=20261116e"></script>
-<script src="js/fields.js?v=20261116e"></script>
-<script src="js/engine.js?v=20261116e"></script>
-<script src="js/charts.js?v=20261116e"></script>
-<script src="js/ui-core.js?v=20261116e"></script>
-<script src="js/ui-loan.js?v=20261116e"></script>
-<script src="js/ui-rent.js?v=20261116e"></script>
-<script src="js/ui-chart.js?v=20261116e"></script>
-<script src="js/main.js?v=20261116e"></script>
+<script src="js/tip.js?v=202611162305"></script>
+<script src="js/policy.js?v=202611162305"></script>
+<script src="js/state.js?v=202611162305"></script>
+<script src="js/fields.js?v=202611162305"></script>
+<script src="js/engine.js?v=202611162305"></script>
+<script src="js/charts.js?v=202611162305"></script>
+<script src="js/ui-core.js?v=202611162305"></script>
+<script src="js/ui-loan.js?v=202611162305"></script>
+<script src="js/ui-rent.js?v=202611162305"></script>
+<script src="js/ui-chart.js?v=202611162305"></script>
+<script src="js/main.js?v=202611162305"></script>
 </body></html>

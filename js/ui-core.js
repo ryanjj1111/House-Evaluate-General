@@ -76,7 +76,8 @@ function onField(e) {
  if (t === 'sel') { if (v === 'true' || v === 'false') v = v === 'true'; else if (/^-?\d+(\.\d+)?$/.test(v)) v = +v; }
  el.classList.toggle('bad', t === 'number' && el.value !== '' && !el.checkValidity());
  setP(el.dataset.p, v); save();
- if (el.dataset.rb && e.type === 'change') buildInputs();
+ // 要重畫輸入區時延後一點：直接換掉 innerHTML 會讓正在編輯的欄位失焦，再觸發一次 change
+ if (el.dataset.rb && e.type === 'change') { clearTimeout(onField.rb); onField.rb = setTimeout(buildInputs, 0); }
  clearTimeout(onField.t); onField.t = setTimeout(calc, e.type === 'input' ? 250 : 0);
 }
 
@@ -108,5 +109,5 @@ function buildStatic() {
  const Q = POLICY.qingan, ex = qinganLadder('2024-03', 1.775);
  $('fmQ').innerHTML = `自撥款日起 ${Q.full / 12} 年完整補貼（合計 ${Q.sub / 0.25} 碼），之後每年少半碼（${Q.step}%），遞減 ${Q.steps} 次後回到原利率。例：2024-03 撥款、補貼後 1.775%：` +
   ex.map(x => `<code>${ymTxt(x.from)} ${pc(x.r)}</code>`).join(' → ') + '。';
- $('fmSrc').innerHTML = `政策資料確認日：${POLICY.date}。來源：<a href="${Q.url}" target="_blank" rel="noopener">${esc(Q.src)}</a>、` + POLICY.rentSrc.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join('、') + '。';
+ $('fmSrc').innerHTML = `政策資料確認日：${POLICY.date}。來源：<a href="${Q.url}" target="_blank" rel="noopener">${esc(Q.src)}</a>、` + [...POLICY.rentSrc, [POLICY.refi.src, POLICY.refi.url]].map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join('、') + '。';
 }

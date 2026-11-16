@@ -5,7 +5,7 @@ import fs from 'fs'; import vm from 'vm'; import path from 'path'; import { file
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const ctx = vm.createContext({ console });
 for (const f of ['js/policy.js', 'js/state.js', 'js/engine.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
-vm.runInContext('globalThis.__E={YM,pmt,nper,qinganLadder,rateAt,loanLadder,loanTiming,schedule,loanSummary,byYear,prepayEffect,stress,holdMonthly,rentTax,rateFrom,breachLoan,rentStart,rentLoan,rentCompare,rentBreakeven,POLICY,DEF,norm}', ctx);
+vm.runInContext('globalThis.__E={YM,pmt,nper,qinganLadder,rateAt,loanLadder,loanTiming,schedule,loanSummary,byYear,prepayEffect,stress,holdMonthly,rentTax,rateFrom,breachLoan,rentStart,rentLoan,isRefi,rentRows,refiCost,refiCompare,rentCompare,rentBreakeven,POLICY,DEF,norm}', ctx);
 const E = ctx.__E;
 
 let fail = 0, pass = 0;
@@ -120,6 +120,26 @@ ok('打平月租（免稅額內外都對）', Number.isFinite(beLow) && Math.abs
 // ---------- 12. 快取：同樣條件回傳同一份結果
 ok('還款表快取', E.schedule(L) === E.schedule(JSON.parse(JSON.stringify(L))));
 ok('每月多還與一次提前還款分開記', (() => { const r = E.schedule({ ...L, extra: { amt: 3000, from: '2026-04' }, pre: [{ ym: '2027-01', amt: 10, mode: 'term' }] }); const a = r.find(x => x.ym === '2027-01'); return a.ex1 === 3000 && a.pre1 === 1e5 && a.extra === 103000; })());
+
+// ---------- 12b. 轉貸
+const Sr = { ...Sx, rent: { ...Sx.rent, breach: false, newRate: 2.4, refi: { yrs: '', grace: 0, fee: 5000, scriv: 8000, setFee: '', other: 3000, penalty: 0 } } };
+ok('轉貸判斷', E.isRefi(Sr) && !E.isRefi(Sx) && !E.isRefi({ ...Sr, rent: { ...Sr.rent, newRate: '' } }));
+const rc = E.refiCost(Sr), balR = E.schedule(L).filter(x => x.ym < '2027-07').pop().bal;
+ok('轉貸費用：設定規費自動＝本金×120%×0.1%', near(rc.parts.setFee, Math.round(balR * 1.2 * 0.001), 0.5) && near(rc.total, 16000 + rc.parts.setFee, 0.5), rc);
+const rc2 = E.refiCost({ ...Sr, rent: { ...Sr.rent, refi: { ...Sr.rent.refi, setFee: 1000, penalty: 1 } } });
+ok('轉貸費用：手填設定規費、違約金 1%', near(rc2.total, 17000 + balR * 0.01, 0.5));
+const same = E.rentRows(Sr), viaRate = E.schedule(E.rentLoan(Sr));
+ok('年限留空＝只換利率', same.length === viaRate.length && near(same[same.length - 1].bal, 0, 1));
+const S30 = { ...Sr, rent: { ...Sr.rent, refi: { ...Sr.rent.refi, yrs: 30 } } }, R30 = E.rentRows(S30);
+const r0 = R30.find(x => x.ym === '2027-07');
+ok('轉貸重設 30 年：從出租月起 360 期、月付＝公式', R30[R30.length - 1].ym === E.YM.add('2027-07', 359) && near(r0.base, P(balR, 2.4, 360), 0.01), [R30[R30.length - 1].ym, r0.base]);
+const Sg = { ...Sr, rent: { ...Sr.rent, refi: { ...Sr.rent.refi, yrs: 30, grace: 12 } } }, Rg = E.rentRows(Sg);
+ok('轉貸寬限 12 個月只繳息', Rg.find(x => x.ym === '2027-07').grace && !Rg.find(x => x.ym === '2028-07').grace);
+const rx = E.refiCompare(Sr);
+ok('轉貸 vs 違規：月付較低、回本月數＝費用÷每月少付', rx.alt === 'breach' && rx.save > 0 && rx.payback === Math.ceil(rx.cost.total / rx.save) && near(rx.rateB, 2.75, 1e-9) && near(rx.rateA, 2.4, 1e-9));
+const cR = E.rentCompare(Sr, 'normal');
+ok('出租比較含轉貸費用÷12', cR.refi && near(cR.rent.refi, rc.total / 12, 1e-9) && cR.self.refi === 0);
+ok('設定檔轉換補上轉貸欄位', E.norm({ rent: { refi: { fee: 1 } } }).rent.refi.scriv === 8000 && E.norm({ rent: { refi: { fee: 1 } } }).rent.refi.fee === 1);
 
 // ---------- 13. 設定檔轉換（舊版也能匯入）
 const d0 = E.norm({});
