@@ -4,8 +4,8 @@
 import fs from 'fs'; import vm from 'vm'; import path from 'path'; import { fileURLToPath } from 'url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const ctx = vm.createContext({ console });
-for (const f of ['js/policy.js', 'js/engine.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
-vm.runInContext('globalThis.__E={YM,pmt,nper,qinganLadder,rateAt,loanLadder,loanTiming,schedule,loanSummary,byYear,prepayEffect,stress,holdMonthly,rentTax,rateFrom,breachLoan,rentStart,rentLoan,rentCompare,rentBreakeven,POLICY}', ctx);
+for (const f of ['js/policy.js', 'js/state.js', 'js/engine.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+vm.runInContext('globalThis.__E={YM,pmt,nper,qinganLadder,rateAt,loanLadder,loanTiming,schedule,loanSummary,byYear,prepayEffect,stress,holdMonthly,rentTax,rateFrom,breachLoan,rentStart,rentLoan,rentCompare,rentBreakeven,POLICY,DEF,norm}', ctx);
 const E = ctx.__E;
 
 let fail = 0, pass = 0;
@@ -111,6 +111,35 @@ const be = E.rentBreakeven(Sx, 'normal');
 ok('打平月租讓差額 ≈ 0', Number.isFinite(be) && Math.abs(E.rentCompare(Sx, 'normal', be).diff) < 0.01, be);
 const sum = cN.rent.income - cN.rent.tax - cN.rent.pay - cN.rent.mgmt - cN.rent.houseTax - cN.rent.landTax - cN.rent.repair - cN.rent.myRent;
 ok('現金流各項加總一致', near(sum, cN.rent.net, 1e-9));
+
+// ---------- 11. 打平月租在免稅額以內也正確（公益出租人、月租低）
+const Slow = { ...Sx, rent: { ...Sx.rent, myRent: 0, repair: 0, breach: false, newRate: '' } };
+const beLow = E.rentBreakeven(Slow, 'public');
+ok('打平月租（免稅額內外都對）', Number.isFinite(beLow) && Math.abs(E.rentCompare(Slow, 'public', beLow).diff) < 0.01, beLow);
+
+// ---------- 12. 快取：同樣條件回傳同一份結果
+ok('還款表快取', E.schedule(L) === E.schedule(JSON.parse(JSON.stringify(L))));
+ok('每月多還與一次提前還款分開記', (() => { const r = E.schedule({ ...L, extra: { amt: 3000, from: '2026-04' }, pre: [{ ym: '2027-01', amt: 10, mode: 'term' }] }); const a = r.find(x => x.ym === '2027-01'); return a.ex1 === 3000 && a.pre1 === 1e5 && a.extra === 103000; })());
+
+// ---------- 13. 設定檔轉換（舊版也能匯入）
+const d0 = E.norm({});
+ok('空資料補預設', d0.v === 3 && d0.loan.rateMode === 'single' && d0.view.rng === '10' && d0.view.from === 'disb' && d0.rent.breach === false);
+const v1 = E.norm({ src: 'mine', mine: { v: 1, name: 'x', loan: { amt: 992, disb: '2023-10-21', rateMode: 'qingan', qa: { sub: 1.775 } }, stressBp: 50, rent: { qingan: true, breachRate: '' } }, ui: { tab: 'S' } });
+ok('v1 我的資料：搬出 mine、碼數轉百分比、qingan 不沿用', v1.loan.amt === 992 && v1.loan.rateMode === 'qingan' && v1.stressPct === 0.5 && v1.rent.breach === false && !('qingan' in v1.rent) && !('name' in v1) && v1.view.tab === 'L');
+const v2 = E.norm({ data: { v: 2, loan: { amt: 500 }, rent: { breach: true, newRate: 2.4 } } });
+ok('v2 匯出檔：保留違規與轉貸利率', v2.loan.amt === 500 && v2.rent.breach === true && v2.rent.newRate === 2.4 && v2.view.cv === 'bal');
+const v2u = E.norm({ loan: { amt: 1 }, ui: { tab: 'R', cv: 'pay', rng: 'all', pin: 1, open: { 2027: 1 } } });
+ok('v2 localStorage 的 ui 搬進 view', v2u.view.tab === 'R' && v2u.view.cv === 'pay' && v2u.view.rng === 'all' && v2u.view.pin === 1 && v2u.view.open[2027] === 1);
+const bad = E.norm({ loan: { rateMode: 'xx', pre: 'x' }, view: { tab: 'Z', rng: 7 } });
+ok('不合法的值改回預設', bad.loan.rateMode === 'single' && Array.isArray(bad.loan.pre) && bad.view.tab === 'L' && bad.view.rng === '10');
+ok('norm 不改到原物件', (() => { const o = { loan: { amt: 1 } }; E.norm(o); return !o.view; })());
+
+// ---------- 14. 版本號：index.html 裡每個 js 的 ?v= 要一致（改版用 node tools/bump.mjs）
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const vs = [...html.matchAll(/\.js\?v=([\w.-]+)/g)].map(m => m[1]);
+ok('js 版本號一致', vs.length >= 5 && new Set(vs).size === 1, [...new Set(vs)]);
+const used = [...html.matchAll(/src="js\/([\w-]+)\.js/g)].map(m => m[1]);
+ok('js 檔案都存在', used.every(f => fs.existsSync(path.join(ROOT, 'js', f + '.js'))), used);
 
 console.log(`${pass} 項通過${fail ? `，${fail} 項失敗` : ''}`);
 process.exit(fail ? 1 : 0);

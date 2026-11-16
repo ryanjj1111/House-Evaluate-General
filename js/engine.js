@@ -74,7 +74,7 @@ function loanTiming(L) {
 //  2. 本息均攤：利率改變或「降低月付」型提前還款後，用「剩餘本金、剩餘期數」重算月付（浮動利率房貸的做法）。
 //  3. 「縮短年限」型提前還款、每月額外還款：月付不變，剩餘期數重新計算。
 //  4. 本金均攤：每期本金＝剩餘本金 ÷ 剩餘期數，利息另計。
-function schedule(L, opt = {}) {
+function scheduleRaw(L, opt = {}) {
  const T = loanTiming(L), ladder = loanLadder(L), shock = opt.shock;
  const pre = opt.noPre ? [] : (L.pre || []).filter(e => YM.ok(e.ym) && +e.amt > 0);
  const ex = opt.noPre ? null : (L.extra && +L.extra.amt > 0 ? { amt: +L.extra.amt, from: YM.ok(L.extra.from) ? L.extra.from : T.amStart } : null);
@@ -93,19 +93,29 @@ function schedule(L, opt = {}) {
    bal -= prin; remain -= 1;
   }
   // 每月額外還款（縮短年限）
-  let extra = 0, shorten = false;
-  if (!grace && ex && p >= YM.p(ex.from) && bal > 0.5) { extra = Math.min(ex.amt, bal); bal -= extra; shorten = true; }
+  let ex1 = 0, pre1 = 0, shorten = false;
+  if (!grace && ex && p >= YM.p(ex.from) && bal > 0.5) { ex1 = Math.min(ex.amt, bal); bal -= ex1; shorten = true; }
   // 一次提前還款
   for (const e of pre) if (YM.p(e.ym) === p && bal > 0.5) {
-   const a = Math.min(+e.amt * 1e4, bal); extra += a; bal -= a;
+   const a = Math.min(+e.amt * 1e4, bal); pre1 += a; bal -= a;
    if (e.mode === 'pay') recalc = true; else shorten = true;
   }
+  const extra = ex1 + pre1;
   if (!grace && bal > 0.5 && shorten && !recalc) remain = pi ? Math.max(1, nper(bal, r, pay)) : Math.max(1, Math.ceil(bal / pp - 1e-9));
   lastR = rP;
   if (bal < 0.5) bal = 0;
-  rows.push({ ym, r: rP, pay: payBase + extra, base: payBase, int: it, prin, extra, bal, grace });
+  rows.push({ ym, r: rP, pay: payBase + extra, base: payBase, int: it, prin, extra, ex1, pre1, bal, grace });
  }
  return rows;
+}
+
+// 同樣的貸款條件只算一次（每改一個數字，畫面會呼叫好幾十次）。回傳的陣列請當唯讀。
+const SCH_CACHE = new Map();
+function schedule(L, opt = {}) {
+ const k = JSON.stringify([L, opt]);
+ let r = SCH_CACHE.get(k);
+ if (!r) { r = scheduleRaw(L, opt); if (SCH_CACHE.size > 300) SCH_CACHE.clear(); SCH_CACHE.set(k, r); }
+ return r;
 }
 
 // 總結。now：今天的年月（決定「目前月付」「已繳／未繳利息」）
@@ -204,11 +214,16 @@ function rentCompare(S, modeKey, rentOverride) {
  return { mode: modeKey, M, start, self, rent, diff: rent.net - self.net, breach, changed: RL !== L, newRate: RL !== L ? rateAt(loanLadder(RL), start) : null, breachInt: rent.int - self.int, months: sRows.length };
 }
 // 損益兩平月租：出租後每月現金流＝自住時的月租（市場租金）。找不到回傳 Infinity
+// 差額對月租 m 是分段直線：租金 m×f×on，租賃所得稅 max(0, m×f − 免稅額)×(1−費用率)×稅率×on，其餘和月租無關。
 function rentBreakeven(S, modeKey) {
- let lo = 0, hi = 500000;
- if (rentCompare(S, modeKey, hi).diff < 0) return Infinity;
- for (let k = 0; k < 60; k++) { const mid = (lo + hi) / 2; if (rentCompare(S, modeKey, mid).diff < 0) lo = mid; else hi = mid; }
- return hi;
+ const c0 = rentCompare(S, modeKey, 0), M = c0.M, on = (12 - c0.rent.vac) / 12, f = M.factor;
+ const k = (1 - M.exp) * (+(S.hold || {}).incomeRate || 0) / 100;
+ const s1 = f * on, s2 = f * on * (1 - k), d0 = c0.diff;
+ if (d0 >= 0) return 0;
+ if (s1 <= 0) return Infinity;
+ const m1 = (M.exempt || 0) / f, d1 = d0 + s1 * m1;
+ if (d1 >= 0) return -d0 / s1;
+ return s2 > 0 ? m1 - d1 / s2 : Infinity;
 }
 
-if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, rateFrom, breachLoan, rentStart, rentLoan, rentCompare, rentBreakeven };
+if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, scheduleRaw, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, rateFrom, breachLoan, rentStart, rentLoan, rentCompare, rentBreakeven };
