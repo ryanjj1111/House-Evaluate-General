@@ -19,6 +19,22 @@ const POLICY = {
  // 選擇性信用管制：自然人第二戶（P6 購屋前模式用）
  secondHome: { ltv: 0.7, grace: false, from: '2026-09-17', src: '自由時報 2026-09-17 央行理監事會', url: 'https://ec.ltn.com.tw/article/breakingnews/5577362' },
  // 新青安違規（出租等）：終止補貼、返還違規日起補貼、重新核定條件（P2 用）
- qinganBreach: { rate: 2.75, src: '工商時報 2024-06 財政部新青安 25 問；公視 2024 查核案例（1.775%→2.75%）', url: 'https://www.ctee.com.tw/news/20240628700974-430104' }
+ qinganBreach: { rate: 2.75, src: '工商時報 2024-06 財政部新青安 25 問；公視 2024 查核案例（1.775%→2.75%）', url: 'https://www.ctee.com.tw/news/20240628700974-430104' },
+ // 出租方式（P2）。exempt：每屋每月租金免稅額；exp：超過部分可扣除的必要費用率；houseRate：房屋稅率（%，臺中）；
+ // landX：地價稅相對自用住宅（2‰）的倍數（一般用地 10‰ ＝ 5 倍；社宅包租代管多數縣市減徵 80% ≈ 2‰）；
+ // factor：實收租金占市場租金比例；noVac：空租風險由業者承擔
+ rentModes: {
+  normal: { name: '一般出租', note: '申報租賃所得達租金標準，3/22 前向地方稅務局申請', exempt: 0, exp: 0.43, houseRate: 1.5, landX: 5, factor: 1, noVac: false },
+  public: { name: '公益出租人', note: '租給有租金補貼資格的房客，經主管機關認定', exempt: 15000, exp: 0.43, houseRate: 1.2, landX: 5, factor: 1, noVac: false },
+  socialLease: { name: '社宅包租', note: '業者當二房東，每月付租金給你，空租由業者承擔', exempt: 15000, exp: 0.60, houseRate: 1.2, landX: 1, factor: 0.9, noVac: true },
+  socialManage: { name: '社宅代管', note: '業者幫你找房客與管理，約 9 折出租，空租由你承擔', exempt: 15000, exp: 0.60, houseRate: 1.2, landX: 1, factor: 0.9, noVac: false }
+ },
+ houseTaxNonSelf: 3.2,   // 臺中非自住住家用房屋（沒有申報出租或沒達租金標準）最低級距
+ rentSrc: [
+  ['國土署 2026-04（社宅包租代管 15,000 元免稅＋60% 費用）', 'https://www.ctee.com.tw/news/20260430701027-430104'],
+  ['臺中市地方稅務局 2026-09（出租 1.5%～2.4%、公益出租人與社宅 1.2%、非自住 3.2%～4.8%）', 'https://www.etax.nat.gov.tw/etwmain/announcement/news/evGq2x8'],
+  ['TVBS 2026（一般出租 43% 標準費用率）', 'https://news.tvbs.com.tw/life/3191298'],
+  ['房地合一自住優惠：交易前 6 年內無出租（國稅局）', 'https://www.ctee.com.tw/news/20251217700769-430601']
+ ]
 };
 if (typeof module !== 'undefined') module.exports = { POLICY };

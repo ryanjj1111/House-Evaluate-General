@@ -150,4 +150,53 @@ function stress(L, now, bpList = [25, 50]) {
  });
 }
 
-if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, loanSummary, byYear, prepayEffect, stress };
+// ================= 出租（P2）=================
+// 持有成本換算成每月（自住時的金額）。H：{ mgmt, mgmtPer:'m'|'q'|'y', houseTax(元/年), landTax(元/年) }
+function holdMonthly(H = {}) {
+ const per = H.mgmtPer === 'q' ? 3 : H.mgmtPer === 'y' ? 12 : 1;
+ return { mgmt: (+H.mgmt || 0) / per, houseTax: (+H.houseTax || 0) / 12, landTax: (+H.landTax || 0) / 12 };
+}
+// 某一個月的租賃所得稅（m：當月實收租金；rate：綜所稅邊際稅率 %）
+//   應稅所得 = max(0, 月租 − 每屋每月免稅額) × (1 − 必要費用率)
+function rentTax(m, M, rate) { return Math.max(0, m - (M.exempt || 0)) * (1 - M.exp) * (+rate || 0) / 100; }
+
+// 新青安違規：出租那個月起改用「違規後利率」。
+// 違規會終止補貼、追回違規日起已撥的補貼並重新核定條件，經濟上等於從違規日起就沒有補貼；這裡用一個重新核定後的利率代表。
+function breachLoan(L, from, rate) {
+ const lad = loanLadder(L).filter(x => YM.p(x.from) < YM.p(from));
+ return { ...L, rateMode: 'custom', ladder: [...lad, { from: String(from).slice(0, 7), r: +rate }] };
+}
+
+// 出租 vs 自住：從開始出租的月份起 12 個月的「平均每月現金流」。
+// 兩邊都在還房貸本金，所以差額主要來自：租金 − 租賃所得稅 − 多付的利息 − 變重的房屋稅地價稅 − 修繕 − 自己在外面租房。
+// S：{ loan, hold, rent }；rentOverride：試算不同月租（求損益兩平用）
+function rentCompare(S, modeKey, rentOverride) {
+ const L = S.loan, H = S.hold || {}, Rn = S.rent || {}, M = POLICY.rentModes[modeKey];
+ const start = YM.ok(Rn.start) ? String(Rn.start).slice(0, 7) : loanTiming(L).amStart;
+ const p0 = YM.p(start), win = rows => rows.filter(x => YM.p(x.ym) >= p0 && YM.p(x.ym) < p0 + 12);
+ const avg = (A, k) => A.length ? A.reduce((s, x) => s + x[k], 0) / 12 : 0;
+ const h = holdMonthly(H);
+ const breach = L.rateMode === 'qingan' && Rn.qingan !== false;
+ const sRows = win(schedule(L)), rRows = win(schedule(breach ? breachLoan(L, start, Rn.breachRate === '' || Rn.breachRate == null ? POLICY.qinganBreach.rate : Rn.breachRate) : L));
+ const market = rentOverride != null ? rentOverride : (+Rn.rent || 0);
+ const mRent = market * M.factor, vac = M.noVac ? 0 : Math.min(12, Math.max(0, +Rn.vac || 0)), on = (12 - vac) / 12;
+ const selfRate = +H.selfRate || 1;
+ const self = { pay: avg(sRows, 'base'), int: avg(sRows, 'int'), mgmt: h.mgmt, houseTax: h.houseTax, landTax: h.landTax, income: 0, tax: 0, repair: 0, myRent: 0 };
+ const rent = {
+  pay: avg(rRows, 'base'), int: avg(rRows, 'int'), mgmt: Rn.mgmtBy === 'tenant' ? 0 : h.mgmt,
+  houseTax: h.houseTax / selfRate * M.houseRate, landTax: h.landTax * M.landX,
+  income: mRent * on, tax: rentTax(mRent, M, H.incomeRate) * on, repair: +Rn.repair || 0, myRent: +Rn.myRent || 0, mRent, vac
+ };
+ const net = o => o.income - o.tax - o.pay - o.mgmt - o.houseTax - o.landTax - o.repair - o.myRent;
+ self.net = net(self); rent.net = net(rent);
+ return { mode: modeKey, M, start, self, rent, diff: rent.net - self.net, breach, breachInt: rent.int - self.int, months: sRows.length };
+}
+// 損益兩平月租：出租後每月現金流＝自住時的月租（市場租金）。找不到回傳 Infinity
+function rentBreakeven(S, modeKey) {
+ let lo = 0, hi = 500000;
+ if (rentCompare(S, modeKey, hi).diff < 0) return Infinity;
+ for (let k = 0; k < 60; k++) { const mid = (lo + hi) / 2; if (rentCompare(S, modeKey, mid).diff < 0) lo = mid; else hi = mid; }
+ return hi;
+}
+
+if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, breachLoan, rentCompare, rentBreakeven };

@@ -48,6 +48,12 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
 .road{font-size:12px;color:var(--mut);text-align:center;margin:4px 0 12px}
 #toast{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#1e293b;color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;display:none;z-index:8}
 .pg{display:none}.pg.on{display:block}
+.hl.r{background:#fee2e2;color:#991b1b}
+.rb{display:grid;grid-template-columns:72px 1fr 64px;gap:6px;align-items:center;padding:5px 4px;border-radius:6px;cursor:pointer;font-size:12.5px}.rb.on{background:#f0fdfa;outline:1px solid #99f6e4}
+.rbt{position:relative;height:14px;background:#f1f5f9;border-radius:7px}.rbt::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#94a3b8}
+.rbt i{position:absolute;top:0;bottom:0;border-radius:7px}.rbt i.pos{background:#16a34a}.rbt i.neg{background:#f87171}.rbv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.rt td,.rt th{font-size:12px;padding:4px 5px}.rt td:first-child,.rt th:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}.rt th:first-child{background:#f1f5f9}
+.rt .sel{background:#f0fdfa}.rt th.sel{background:#ccfbf1}.rt tr.tot td{border-top:1px solid #cbd5e1}.rt tr.mut td{color:var(--mut);font-size:11px}
 </style></head><body>
 
 <div class="hdr"><h2>🏠 房屋試算 <small>房貸・出租・出售</small></h2>
@@ -68,7 +74,7 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
  <div id="alerts"></div>
 </div>
 
-<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="Y" onclick="tab('Y')">📅 明細</button><button data-t="F" onclick="tab('F')">📐 公式</button><button data-t="S" onclick="tab('S')">⚙️ 設定</button></div>
+<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="R" onclick="tab('R')">🔑 出租</button><button data-t="Y" onclick="tab('Y')">📅 明細</button><button data-t="F" onclick="tab('F')">📐 公式</button><button data-t="S" onclick="tab('S')">⚙️ 設定</button></div>
 
 <div class="pg" id="pgL">
  <div class="p"><b>🏦 貸款條件</b><span class="ib" role="button" tabindex="0" data-tn="貸款條件" data-tt="依銀行的貸款契約或撥款通知填寫。&#10;寬限期：只繳利息、不還本金的期數。&#10;「首次本息月／本息期數」通常不用填；如果銀行的實際扣款和這裡算的差一個月，再到「進階」修正。">ⓘ</span>
@@ -79,6 +85,18 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
   <div id="preIn"></div><div id="preOut"></div></div>
  <div class="p"><b>🌡️ 升息壓力測試</b><span class="ib" role="button" tabindex="0" data-tn="升息壓力測試" data-tt="假設從這個月起利率再加幾碼（1 碼＝0.25%），月付和未來總利息會增加多少。房貸大多是機動利率，央行升息時會跟著調整。">ⓘ</span>
   <div id="stIn"></div><div class="w"><table class="st" id="stT"></table></div></div>
+</div>
+
+<div class="pg" id="pgR">
+ <div class="p"><b>🔑 出租 vs 自住</b><span class="ib" role="button" tabindex="0" data-tn="出租 vs 自住" data-tt="比較「從某個月起不住、改出租」和「繼續自住」在出租後第一年的平均每月現金流。&#10;兩邊都在還房貸本金，所以差額主要來自：租金、租賃所得稅、新青安違規多付的利息、變重的房屋稅地價稅、修繕，以及你自己在外面租房的費用。&#10;出租對未來出售的影響（失去自住優惠）會在 💸 出售分頁計算。">ⓘ</span>
+  <div class="verdict" id="rentRes" style="margin-top:6px"></div>
+  <div id="rentBars" style="margin-top:8px"></div></div>
+ <div class="p"><b>📋 四種出租方式比較</b><span class="ib" role="button" tabindex="0" data-tn="四種出租方式" data-tt="一般出租：自己找房客，租賃所得扣 43% 費用後課稅；申報達租金標準可用 1.5% 房屋稅。&#10;公益出租人：房客有租金補貼資格，每屋每月 15,000 元免稅，超過部分扣 43% 費用；房屋稅 1.2%。&#10;社宅包租：業者當二房東，約 9 折，空租由業者承擔；每月 15,000 元免稅，超過部分扣 60%；房屋稅 1.2%。&#10;社宅代管：業者代為出租管理，約 9 折，空租由你承擔；稅務同社宅包租。&#10;地價稅、9 折等數字是一般情況，實際以稅單、合約為準。">ⓘ</span>
+  <div class="w" style="margin-top:4px"><table class="rt" id="rentT"></table></div>
+  <div class="h" id="rentNote" style="margin-top:4px"></div>
+  <div id="rentAl"></div></div>
+ <div class="p"><b>🏠 自住時的持有成本</b><div id="holdIn"></div></div>
+ <div class="p"><b>📝 出租條件</b><div id="rentIn"></div></div>
 </div>
 
 <div class="pg" id="pgY">
@@ -102,6 +120,14 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
   <div id="fmQ"></div>
   <h3>升息壓力測試</h3>
   <div>從本月起，每一段利率都加上指定的碼數（1 碼＝0.25%），其餘規則相同。</div>
+  <h3>出租：租賃所得稅</h3>
+  <div><code>應稅所得 = max(0, 月租 − 每屋每月免稅額) × (1 − 必要費用率)</code>，再乘上綜所稅邊際稅率。一般出租免稅額 0、費用率 43%；公益出租人 15,000 元、43%；社宅包租代管 15,000 元、60%。</div>
+  <h3>出租：房屋稅、地價稅</h3>
+  <div>用自住時的稅額反推：<code>出租後房屋稅 = 自住房屋稅 ÷ 自住稅率 × 出租稅率</code>（臺中：一般出租 1.5%、公益出租人與社宅 1.2%、沒申請 3.2%）。地價稅自用住宅 2‰，出租後一般用地 10‰（5 倍）；社宅包租代管多數縣市減徵，這裡以 2‰ 估計。</div>
+  <h3>出租：新青安違規</h3>
+  <div>從出租那個月起，貸款利率改為「違規後利率」重算月付。違規會追回違規日起已撥的補貼，經濟上等於從出租起就沒有補貼。</div>
+  <h3>出租 vs 自住</h3>
+  <div><code>每月現金流 = 租金收入 − 租賃所得稅 − 房貸月付 − 管理費 − 房屋稅 − 地價稅 − 修繕預備 − 自己租屋</code>，取出租後 12 個月的平均；自住時租金、所得稅、修繕、自己租屋都是 0。打平月租用二分法找出「比自住 = 0」的月租。</div>
   <h3>和銀行的差異</h3>
   <div>銀行通常按日計息、月付四捨五入到元，和這裡逐月計算會有幾元到幾十元的差距；還清前最後一期也可能略有不同。</div>
   <div class="h" style="margin-top:10px" id="fmSrc"></div>
@@ -120,14 +146,14 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
  </div>
 </div>
 
-<div class="road">🛠️ 規劃中：🔑 出租試算 → 💸 出售與房地合一稅 → 📊 情境比較 → 🏘️ 實價登錄行情</div>
+<div class="road">🛠️ 規劃中：🏘️ 租金行情 → 💸 出售與房地合一稅 → 📊 情境比較 → 🏘️ 實價登錄比較</div>
 <div class="h" style="text-align:center;margin-bottom:20px">本工具僅供試算，非貸款、稅務或投資建議；實際以銀行與主管機關為準。</div>
 <div id="toast"></div>
 
-<script src="js/tip.js?v=20261116b"></script>
-<script src="js/policy.js?v=20261116b"></script>
-<script src="js/engine.js?v=20261116b"></script>
-<script src="js/charts.js?v=20261116b"></script>
-<script src="js/ui.js?v=20261116b"></script>
-<script src="js/main.js?v=20261116b"></script>
+<script src="js/tip.js?v=20261116c"></script>
+<script src="js/policy.js?v=20261116c"></script>
+<script src="js/engine.js?v=20261116c"></script>
+<script src="js/charts.js?v=20261116c"></script>
+<script src="js/ui.js?v=20261116c"></script>
+<script src="js/main.js?v=20261116c"></script>
 </body></html>

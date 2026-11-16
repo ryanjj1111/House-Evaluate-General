@@ -6,8 +6,16 @@ const DEMO = {
  loan: { amt: 800, disb: '2024-03-15', yrs: 30, grace: 24, method: 'pi', first: '', amStart: '', amN: '',
   rateMode: 'qingan', qa: { sub: 1.775, base: '' }, ladder: [{ from: '2024-03', r: 2.185 }, { from: '2025-03', r: 2.385 }],
   pre: [], extra: { amt: 0, from: '' } },
- stressBp: 75
+ stressBp: 75,
+ hold: { mgmt: 2500, mgmtPer: 'm', houseTax: 3000, landTax: 300, selfRate: 1, incomeRate: 12 },
+ rent: { start: '', rent: 28000, vac: 1, mgmtBy: 'owner', repair: 1000, myRent: 22000, qingan: true, breachRate: '', mode: 'normal' }
 };
+// 舊的設定檔沒有的欄位，用示範值補上
+function norm(d) {
+ d.hold = { ...clone(DEMO.hold), ...(d.hold || {}) };
+ d.rent = { ...clone(DEMO.rent), ...(d.rent || {}) };
+ return d;
+}
 const clone = o => JSON.parse(JSON.stringify(o));
 const NOW = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); })();
 let ST = { src: 'demo', mine: null, ui: { tab: 'L', cv: 'bal', rng: '10', pin: 0, open: {} } };
@@ -25,7 +33,7 @@ function toast(t) { const e = document.getElementById('toast'); e.textContent = 
 // ---------- 儲存
 function load() {
  try { const o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (o) ST = { ...ST, ...o, ui: { ...ST.ui, ...(o.ui || {}) } }; } catch (e) { }
- S = ST.src === 'mine' && ST.mine ? ST.mine : (demoEdit || clone(DEMO));
+ S = norm(ST.src === 'mine' && ST.mine ? ST.mine : (demoEdit || clone(DEMO)));
 }
 function save() {
  if (ST.src === 'mine') ST.mine = S; else demoEdit = S;
@@ -33,7 +41,7 @@ function save() {
 }
 function setSrc(s) {
  if (s === 'mine' && !ST.mine) { ST.mine = clone(DEMO); ST.mine.name = '我的房子'; toast('已用示範值當起點，請改成你的數字'); }
- ST.src = s; S = s === 'mine' ? ST.mine : (demoEdit || clone(DEMO)); save(); build();
+ ST.src = s; S = norm(s === 'mine' ? ST.mine : (demoEdit || clone(DEMO))); save(); build();
 }
 
 // ---------- 路徑讀寫（'loan.qa.sub'、'loan.pre.0.amt'）
@@ -47,12 +55,14 @@ function fld(path, label, o = {}) {
 }
 function sel(path, label, opts, tip) {
  const v = getP(path);
- return `<label><span class="lt">${esc(label)}${tip ? tipI(tip, label) : ''}</span><select data-p="${path}" data-t="sel" data-rb="1">${opts.map(([k, n]) => `<option value="${k}"${k === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
+ return `<label><span class="lt">${esc(label)}${tip ? tipI(tip, label) : ''}</span><select data-p="${path}" data-t="sel" data-rb="1">${opts.map(([k, n]) => `<option value="${k}"${String(k) === String(v) ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
 }
 function onField(e) {
  const el = e.target; if (!el.dataset || !el.dataset.p) return;
  const t = el.dataset.t; let v = el.value;
  if (t === 'number') v = v === '' ? '' : +v;
+ if (t === 'sel' && (v === 'true' || v === 'false')) v = v === 'true';
+ else if (t === 'sel' && /^\d+(\.\d+)?$/.test(v)) v = +v;
  setP(el.dataset.p, v); save();
  if (el.dataset.rb) buildInputs();
  clearTimeout(onField.t); onField.t = setTimeout(calc, e.type === 'input' ? 250 : 0);
@@ -90,6 +100,28 @@ function buildInputs() {
   <div class="sub">每月多還本金</div><div class="g">${fld('loan.extra.amt', '每月多還（元）', { step: 1000, min: 0 })}${fld('loan.extra.from', '從哪個月開始', { type: 'month' })}</div>`;
 
  document.getElementById('stIn').innerHTML = `<div class="g" style="margin:6px 0">${fld('stressBp', '自訂升息（基點，1 碼＝25）', { step: 25, min: 0 })}<div></div></div>`;
+ buildRentInputs();
+}
+function buildRentInputs() {
+ const q = S.loan.rateMode === 'qingan';
+ document.getElementById('holdIn').innerHTML = `<div class="g" style="margin-top:6px">
+  ${fld('hold.mgmt', '管理費（元）', { step: 10, min: 0 })}
+  ${sel('hold.mgmtPer', '管理費繳法', [['m', '月繳'], ['q', '季繳'], ['y', '年繳']])}
+  ${fld('hold.houseTax', '房屋稅（元／年，自住時）', { step: 1, min: 0, tip: '最近一次房屋稅單的金額（5 月開徵）。出租後會依出租方式換算成新的稅率。' })}
+  ${fld('hold.landTax', '地價稅（元／年，自住時）', { step: 1, min: 0, tip: '最近一次地價稅單的金額（11 月開徵）。自用住宅 2‰，出租後一般用地 10‰ 起。' })}
+  ${sel('hold.selfRate', '自住房屋稅率', [['1', '1%（全國單一自住）'], ['1.2', '1.2%（自住 2～3 戶）']], '你目前房屋稅單適用的稅率，用來反推房屋評定現值。')}
+  ${sel('hold.incomeRate', '綜所稅邊際稅率', [['5', '5%'], ['12', '12%'], ['20', '20%'], ['30', '30%'], ['40', '40%']], '租賃所得會併入綜合所得稅，用你目前最高一級的稅率計算。')}
+ </div>`;
+ document.getElementById('rentIn').innerHTML = `<div class="g" style="margin-top:6px">
+  ${fld('rent.start', '開始出租年月', { type: 'month' })}
+  ${fld('rent.rent', '市場月租（元）', { step: 500, min: 0, tip: '一般出租可以收到的月租。社宅包租／代管會自動打約 9 折。' })}
+  ${fld('rent.vac', '每年空租（月）', { step: 0.5, min: 0, tip: '換房客、找房客期間沒有租金的月數。社宅包租由業者承擔，不計。' })}
+  ${sel('rent.mgmtBy', '管理費誰付', [['owner', '房東（我）'], ['tenant', '房客']])}
+  ${fld('rent.repair', '修繕預備（元／月）', { step: 100, min: 0, tip: '設備損壞、換房客整理的平均每月預備金。' })}
+  ${fld('rent.myRent', '我搬出後的房租（元／月）', { step: 500, min: 0, tip: '你自己搬出去之後每月要付的房租或居住成本。' })}
+  ${q ? sel('rent.qingan', '新青安出租會違規', [['true', '是（計入違規代價）'], ['false', '否（已轉貸或不適用）']], '新青安貸款要自住，出租屬於違規：終止補貼、追回違規日起的補貼，並重新核定貸款條件。') : ''}
+  ${q ? fld('rent.breachRate', '違規後利率（%）', { step: 0.05, ph: String(POLICY.qinganBreach.rate), tip: '銀行重新核定後的利率。留空用 ' + POLICY.qinganBreach.rate + '%（曾有案例由 1.775% 調到 2.75%），實際以銀行為準。' }) : ''}
+ </div>`;
 }
 function addRow(path) {
  const A = getP(path) || []; const L = S.loan;
@@ -165,9 +197,57 @@ function calc() {
  document.getElementById('stT').innerHTML = cur ? `<tr><th>情境</th><th>本月起月付</th><th>每月增加</th><th>未來利息增加</th></tr><tr><td>目前利率</td><td>${f0(cur.base)}</td><td>—</td><td>—</td></tr>` +
   ss.map(x => `<tr><td>升息 ${x.bp % 25 === 0 ? x.bp / 25 + ' 碼' : x.bp + ' 基點'}</td><td>${f0(x.pay)}</td><td class="bad">+${f0(x.dPay)}</td><td class="bad">+${w1(x.dInt)} 萬</td></tr>`).join('') : '';
 
- buildTable(); drawMain();
+ buildTable(); drawMain(); calcRent();
  document.getElementById('srcNote').innerHTML = ST.src === 'demo' ? '目前是<b>示範資料</b>（虛構）。修改不會儲存；切到「我的資料」才會保存在這個瀏覽器。' : `<b>我的資料</b>：只存在這個瀏覽器，記得到 ⚙️ 設定匯出備份。`;
 }
+
+// ---------- 出租
+const RK = ['normal', 'public', 'socialLease', 'socialManage'];
+function rentS() { const d = { ...S, rent: { ...S.rent } }; if (!YM.ok(d.rent.start)) d.rent.start = YM.add(NOW, 2); return d; }
+function calcRent() {
+ if (!document.getElementById('rentRes')) return;
+ const D = rentS(), C = RK.map(k => rentCompare(D, k)), BE = RK.map(k => rentBreakeven(D, k));
+ const sel = RK.includes(D.rent.mode) ? D.rent.mode : 'normal', ci = RK.indexOf(sel), c = C[ci], self = c.self;
+ const sg = v => (v >= 0 ? '+' : '−') + f0(Math.abs(v));
+ const best = C.reduce((b, x, i) => x.diff > C[b].diff ? i : b, 0);
+ const mr = f0(+D.rent.rent || 0);
+ let v = `從 <b>${ymTxt(c.start)}</b> 開始<b>${c.M.name}</b>、市場月租 ${mr} 元：出租後第一年平均每月現金流 <b class="${c.diff >= 0 ? 'ok' : 'bad'}">比自住${c.diff >= 0 ? '多' : '少'} ${f0(Math.abs(c.diff))} 元</b>。`;
+ v += BE[ci] === Infinity ? '怎麼調高月租都無法打平。' : `月租至少要 <b>${f0(BE[ci])} 元</b>才和自住打平。`;
+ if (best !== ci) v += `四種方式裡「${C[best].M.name}」比較好（每月${C[best].diff >= 0 ? '多' : '少'} ${f0(Math.abs(C[best].diff))} 元）。`;
+ if (c.breach) v += `其中新青安違規讓月付多 <b>${f0(c.rent.pay - c.self.pay)} 元</b>（利息多 ${f0(c.breachInt)} 元，還掉的本金變少）。`;
+ document.getElementById('rentRes').innerHTML = v;
+ // 長條：四種方式和自住的差額
+ const mx = Math.max(1, ...C.map(x => Math.abs(x.diff)));
+ document.getElementById('rentBars').innerHTML = C.map((x, i) => `<div class="rb${i === ci ? ' on' : ''}" onclick="setMode('${RK[i]}')"><span class="rbn">${x.M.name}</span><span class="rbt"><i class="${x.diff >= 0 ? 'pos' : 'neg'}" style="width:${Math.abs(x.diff) / mx * 50}%;${x.diff >= 0 ? 'left:50%' : 'right:50%'}"></i></span><span class="rbv ${x.diff >= 0 ? 'ok' : 'bad'}">${sg(x.diff)}</span></div>`).join('') +
+  '<div class="h" style="text-align:center;margin-top:2px">每月現金流：出租 − 自住（元，出租後第一年平均）｜點一列看細項</div>';
+ // 比較表
+ const cols = [{ h: '自住', o: self, d: null, be: null }, ...C.map((x, i) => ({ h: x.M.name, o: x.rent, d: x.diff, be: BE[i], i }))];
+ const row = (t, f, cls = '') => `<tr class="${cls}"><td>${t}</td>${cols.map(k => `<td class="${k.i === ci ? 'sel' : ''}">${f(k)}</td>`).join('')}</tr>`;
+ const neg = v => v ? '−' + f0(v) : '0';
+ document.getElementById('rentT').innerHTML =
+  `<tr><th>每月（元）</th>${cols.map(k => `<th class="${k.i === ci ? 'sel' : ''}"${k.i != null ? ` onclick="setMode('${RK[k.i]}')" style="cursor:pointer"` : ''}>${k.h}</th>`).join('')}</tr>` +
+  row('租金收入', k => k.o.income ? '+' + f0(k.o.income) : '—') +
+  row('租賃所得稅', k => k.o.tax ? neg(k.o.tax) : '—') +
+  row('房貸月付', k => neg(k.o.pay)) +
+  row('　其中利息', k => f0(k.o.int), 'mut') +
+  row('管理費', k => neg(k.o.mgmt)) +
+  row('房屋稅', k => neg(k.o.houseTax)) +
+  row('地價稅', k => neg(k.o.landTax)) +
+  row('修繕預備', k => k.o.repair ? neg(k.o.repair) : '—') +
+  row('自己租屋', k => k.o.myRent ? neg(k.o.myRent) : '—') +
+  row('<b>每月現金流</b>', k => `<b>${sg(k.o.net)}</b>`, 'tot') +
+  row('<b>比自住</b>', k => k.d == null ? '—' : `<b class="${k.d >= 0 ? 'ok' : 'bad'}">${sg(k.d)}</b>`, 'tot') +
+  row('打平月租', k => k.be == null ? '—' : k.be === Infinity ? '無法' : f0(k.be));
+ document.getElementById('rentNote').innerHTML = `${esc(c.M.name)}：${esc(c.M.note)}。實收月租 ${f0(c.rent.mRent)} 元${c.rent.vac ? `，每年空租 ${c.rent.vac} 個月` : ''}；租賃所得稅：${c.M.exempt ? `每月超過 ${f0(c.M.exempt)} 元的部分` : '全部租金'}扣除 ${c.M.exp * 100}% 費用後 × ${D.hold.incomeRate}%；房屋稅 ${c.M.houseRate}%（自住 ${D.hold.selfRate}%）。`;
+ // 提醒
+ const al = [];
+ if (c.breach) al.push(['r', `🚫 <b>新青安違規</b>：新青安要自住，出租會被終止補貼、追回違規日起的補貼，並重新核定條件（這裡用 ${pc(D.rent.breachRate === '' || D.rent.breachRate == null ? POLICY.qinganBreach.rate : D.rent.breachRate)}）。第一年多付利息約 <b>${w1(c.breachInt * 12)} 萬</b>；銀行也可能收回部分借款或縮短年限、寬限期。`]);
+ al.push(['y', `🏷️ <b>自住優惠會中斷</b>：房地合一自住優惠（獲利 400 萬內免稅、超過部分 10%）的條件是出售前 6 年內沒有出租。${ymTxt(c.start)} 出租後，要到搬回自住滿 6 年才能再用（💸 出售分頁會算出差多少）。`]);
+ if (sel === 'normal') al.push(['b', `🏠 <b>房屋稅</b>：一般出租要在出租那年 3/22 前向地方稅務局申請，並在 5 月申報租賃所得達租金標準，才能用 1.5%；沒有申請會用非自住 ${POLICY.houseTaxNonSelf}%（每年約 ${f0(c.self.houseTax * 12 / (+D.hold.selfRate || 1) * POLICY.houseTaxNonSelf)} 元）。`]);
+ al.push(['b', '🌱 <b>地價稅、土地增值稅</b>：出租後不能用自用住宅 2‰ 地價稅（一般 10‰ 起），出售時也不能用自用住宅 10% 的土地增值稅率。']);
+ document.getElementById('rentAl').innerHTML = al.map(([k, t]) => `<div class="hl ${k}">${t}</div>`).join('');
+}
+function setMode(k) { S.rent.mode = k; save(); calcRent(); }
 
 // ---------- 年度明細
 function buildTable() {
@@ -245,7 +325,7 @@ function impJson(inp) {
    const o = JSON.parse(rd.result), d = o && o.data ? o.data : o;
    if (!d || !d.loan) throw new Error('格式不對');
    d.loan = { ...clone(DEMO.loan), ...d.loan, qa: { ...DEMO.loan.qa, ...(d.loan.qa || {}) }, extra: { ...DEMO.loan.extra, ...(d.loan.extra || {}) } };
-   ST.mine = { ...clone(DEMO), ...d }; ST.src = 'mine'; S = ST.mine; save(); build(); toast('已匯入到「我的資料」');
+   ST.mine = norm({ ...clone(DEMO), ...d }); ST.src = 'mine'; S = ST.mine; save(); build(); toast('已匯入到「我的資料」');
   } catch (e) { toast('匯入失敗：' + e.message); }
   inp.value = '';
  };
@@ -261,8 +341,8 @@ function buildStatic() {
  const Q = POLICY.qingan, ex = qinganLadder('2024-03', 1.775);
  document.getElementById('fmQ').innerHTML = `自撥款日起 ${Q.full / 12} 年完整補貼（合計 ${Q.sub / 0.25} 碼），之後每年少半碼（${Q.step}%），遞減 ${Q.steps} 次後回到原利率。例：2024-03 撥款、補貼後 1.775%：` +
   ex.map(x => `<code>${ymTxt(x.from)} ${pc(x.r)}</code>`).join(' → ') + '。';
- document.getElementById('fmSrc').innerHTML = `政策資料確認日：${POLICY.date}。來源：<a href="${Q.url}" target="_blank" rel="noopener">${esc(Q.src)}</a>。`;
- document.getElementById('about').innerHTML = `房貸、出租、出售的整合試算。目前完成：💰 房貸（多段利率、新青安補貼遞減、寬限期、提前還款、升息壓力）。<br>政策資料確認日：${POLICY.date}。<br>舊版出租／賣房評估：<a href="legacy.html">legacy.html</a>（會在新版重寫後移除）。<br>原始碼：<a href="https://github.com/ryanjj1111/House-Evaluate-General" target="_blank" rel="noopener">GitHub</a>`;
+ document.getElementById('fmSrc').innerHTML = `政策資料確認日：${POLICY.date}。來源：<a href="${Q.url}" target="_blank" rel="noopener">${esc(Q.src)}</a>、` + POLICY.rentSrc.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join('、') + '。';
+ document.getElementById('about').innerHTML = `房貸、出租、出售的整合試算。目前完成：💰 房貸（多段利率、新青安補貼遞減、寬限期、提前還款、升息壓力）、🔑 出租 vs 自住（四種出租方式、租賃所得稅、房屋稅地價稅、新青安違規代價、打平月租）。<br>政策資料確認日：${POLICY.date}。<br>舊版出租／賣房評估：<a href="legacy.html">legacy.html</a>（會在新版重寫後移除）。<br>原始碼：<a href="https://github.com/ryanjj1111/House-Evaluate-General" target="_blank" rel="noopener">GitHub</a>`;
 }
 
 function build() {
