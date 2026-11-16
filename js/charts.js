@@ -2,7 +2,8 @@
 // drawChart(canvas, spec, hoverIndex)
 // spec = { x:[標籤], series:[{name, color, data:[數字|null], axis:'L'|'R', type:'line'|'step'|'area'|'bar', stack（長條或面積堆疊）, dash}],
 //          fmtL, fmtR, marks:[{i, color, label}], now:索引, onHover(i) }
-const CH = { spec: null, hover: -1 };
+// 每張圖各自記住目前的 spec、滑過的位置與版面（同一頁可以有好幾張圖）
+const chState = cv => cv._ch || (cv._ch = { spec: null, hover: -1, geo: null });
 
 function niceRange(lo, hi, ticks = 4) {
  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return { lo: 0, hi: 1, step: 0.25 };
@@ -13,7 +14,7 @@ function niceRange(lo, hi, ticks = 4) {
 }
 
 function drawChart(cv, spec, hi = -1) {
- CH.spec = spec; CH.hover = hi;
+ const CH = chState(cv); CH.spec = spec; CH.hover = hi;
  const dpr = window.devicePixelRatio || 1, rc = cv.getBoundingClientRect();
  if (!rc.width) return;
  cv.width = rc.width * dpr; cv.height = rc.height * dpr;
@@ -117,12 +118,12 @@ function drawChart(cv, spec, hi = -1) {
 // 觸控／滑鼠：找最近的索引，交給 spec.onHover
 function chartBind(cv) {
  const pick = ev => {
-  const g = CH.geo, s = CH.spec; if (!g || !s) return;
+  const CH = chState(cv), g = CH.geo, s = CH.spec; if (!g || !s) return;
   const rc = cv.getBoundingClientRect(), pt = ev.touches ? ev.touches[0] : ev, x = pt.clientX - rc.left;
   let i = g.isBar ? Math.floor((x - g.pad.l) / (g.cw / g.N)) : Math.round((x - g.pad.l) / (g.cw / Math.max(1, g.N - 1)));
   i = Math.max(0, Math.min(g.N - 1, i));
   if (i !== CH.hover) { drawChart(cv, s, i); if (s.onHover) s.onHover(i); }
  };
  cv.addEventListener('mousemove', pick); cv.addEventListener('touchstart', pick, { passive: true }); cv.addEventListener('touchmove', pick, { passive: true });
- cv.addEventListener('mouseleave', () => { if (CH.spec) { drawChart(cv, CH.spec, -1); if (CH.spec.onHover) CH.spec.onHover(-1); } });
+ cv.addEventListener('mouseleave', () => { const CH = chState(cv); if (CH.spec) { drawChart(cv, CH.spec, -1); if (CH.spec.onHover) CH.spec.onHover(-1); } });
 }

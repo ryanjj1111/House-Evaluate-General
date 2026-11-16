@@ -89,7 +89,8 @@ document.addEventListener('toggle', e => {
  const d = e.target; if (!d.matches || !d.matches('details.fd[data-k]')) return;
  if (d.open) delete V().fold[d.dataset.k]; else V().fold[d.dataset.k] = 1;
  save();
- if (d.open && d.dataset.k === 'chart' && typeof drawMain === 'function' && R) requestAnimationFrame(drawMain);
+ if (d.open && d.dataset.k === 'chart' && R) requestAnimationFrame(drawMain);
+ if (d.open && d.dataset.k === 'saleTime' && R) requestAnimationFrame(() => drawSaleChart(rentS()));
 }, true);
 
 // ---------- 分頁
@@ -97,7 +98,7 @@ function tab(t) {
  V().tab = t; save();
  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
  document.querySelectorAll('.pg').forEach(p => p.classList.toggle('on', p.id === 'pg' + t));
- if (R) drawMain();
+ if (R) { drawMain(); if (t === 'X') drawSaleChart(rentS()); }
 }
 function segOn(id, k, v) { document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset[k] === String(v))); }
 
@@ -109,5 +110,5 @@ function buildStatic() {
  const Q = POLICY.qingan, ex = qinganLadder('2024-03', 1.775);
  $('fmQ').innerHTML = `自撥款日起 ${Q.full / 12} 年完整補貼（合計 ${Q.sub / 0.25} 碼），之後每年少半碼（${Q.step}%），遞減 ${Q.steps} 次後回到原利率。例：2024-03 撥款、補貼後 1.775%：` +
   ex.map(x => `<code>${ymTxt(x.from)} ${pc(x.r)}</code>`).join(' → ') + '。';
- $('fmSrc').innerHTML = `政策資料確認日：${POLICY.date}。來源：<a href="${Q.url}" target="_blank" rel="noopener">${esc(Q.src)}</a>、` + [...POLICY.rentSrc, [POLICY.refi.src, POLICY.refi.url]].map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join('、') + '。';
+ $('fmSrc').innerHTML = `政策資料確認日：${POLICY.date}。來源：<a href="${Q.url}" target="_blank" rel="noopener">${esc(Q.src)}</a>、` + [...POLICY.rentSrc, [POLICY.refi.src, POLICY.refi.url], ...POLICY.houseLand.src].map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join('、') + '。';
 }

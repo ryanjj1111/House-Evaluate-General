@@ -1,7 +1,7 @@
 // 房屋試算｜啟動與整體流程：build() 重畫全部；calc() 只重算數字
-function buildInputs() { buildLoanInputs(); buildRentInputs(); renderMarket(); }
+function buildInputs() { buildLoanInputs(); buildRentInputs(); buildSaleInputs(); renderMarket(); }
 function calc() {
- if (calcLoan()) { buildTable(); drawMain(); calcRent(); }
+ if (calcLoan()) { buildTable(); drawMain(); calcRent(); calcSale(); }
  else buildTable();
 }
 function build() {
@@ -15,7 +15,7 @@ load();
 buildStatic();
 document.addEventListener('input', onField);
 document.addEventListener('change', onField);
-chartBind($('cv'));
+chartBind($('cv')); chartBind($('saleCv'));
 let rsT; window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(drawMain, 150); });
 build();
 try { if (localStorage.getItem(GKEY) !== '1') showGd(); } catch (e) { }

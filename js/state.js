@@ -9,7 +9,9 @@ const DEF = {
   pre: [], extra: { amt: 0, from: '' }
  },
  stressPct: 0.75,
- house: { city: '', dist: '', rooms: 3, ping: '' },   // 房屋：縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）
+ house: { city: '', dist: '', rooms: 3, ping: '',      // 縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）
+  buyDate: '', price: 1000, buyCost: 0, improve: 0, selfSince: '' },   // 取得日（所有權登記日，留空＝撥款日）、取得價（萬）、取得費用（元）、改良（萬）、設籍自住起日
+ sale: { date: '', priceMode: 'growth', est: '', growth: 1.5, price: '', brokerPct: 2, other: 10000, feeMode: 'actual', landGain: 0, usedSelf: false, landUsed: false, path: 'self' },
  hold: { mgmt: 2500, mgmtPer: 'm', houseTax: 3000, landTax: 300, selfRate: 1, incomeRate: 12 },
  rent: { start: '', rent: 28000, vac: 1, mgmtBy: 'owner', repair: 1000, myRent: 22000, breach: false, newRate: '', breachRate: '', mode: 'normal',
   refi: { yrs: '', grace: 0, fee: 5000, scriv: 8000, setFee: '', other: 3000, penalty: 0 } },   // refi：轉貸（出租前先轉成一般房貸）
@@ -36,6 +38,7 @@ function norm(d) {
  delete d.stressBp;
  d.hold = { ...clone(DEF.hold), ...(d.hold || {}) };
  d.house = { ...clone(DEF.house), ...(d.house || {}) };
+ d.sale = { ...clone(DEF.sale), ...(d.sale || {}) };
  const r = { ...(d.rent || {}) };
  if (r.breach == null) r.breach = false;                              // v1 的 qingan 不沿用，預設「否」
  delete r.qingan;
@@ -47,7 +50,7 @@ function norm(d) {
   if (d.ui.open && !v.open) d.view.open = { ...d.ui.open };
  }
  delete d.ui; delete d.name; delete d.src; delete d.mine;
- if (!['L', 'R', 'Y'].includes(d.view.tab)) d.view.tab = 'L';
+ if (!['L', 'R', 'X', 'Y'].includes(d.view.tab)) d.view.tab = 'L';
  if (!['bal', 'pay', 'yr'].includes(d.view.cv)) d.view.cv = 'bal';
  if (!['5', '10', 'all', 'n'].includes(String(d.view.rng))) d.view.rng = '10';
  d.view.rng = String(d.view.rng);
