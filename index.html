@@ -48,6 +48,11 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
 .road{font-size:12px;color:var(--mut);text-align:center;margin:4px 0 12px}
 #toast{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#1e293b;color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;display:none;z-index:8}
 .pg{display:none}.pg.on{display:block}
+.md{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:9;padding:12px}
+.md>div{background:#fff;border-radius:12px;padding:14px;max-width:580px;width:100%;max-height:88vh;overflow:auto;line-height:1.6}
+.md ul{margin:2px 0;padding-left:20px}.md li{margin:2px 0}
+.gds{border-top:1px solid var(--line);padding:6px 0}.gds>summary{font-weight:700;font-size:15px;cursor:pointer;padding:4px 0}
+.chips{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}.chips button{font-size:12px;padding:3px 8px}
 .hl.r{background:#fee2e2;color:#991b1b}
 .rb{display:grid;grid-template-columns:72px 1fr 64px;gap:6px;align-items:center;padding:5px 4px;border-radius:6px;cursor:pointer;font-size:12.5px}.rb.on{background:#f0fdfa;outline:1px solid #99f6e4}
 .rbt{position:relative;height:14px;background:#f1f5f9;border-radius:7px}.rbt::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#94a3b8}
@@ -56,9 +61,7 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
 .rt .sel{background:#f0fdfa}.rt th.sel{background:#ccfbf1}.rt tr.tot td{border-top:1px solid #cbd5e1}.rt tr.mut td{color:var(--mut);font-size:11px}
 </style></head><body>
 
-<div class="hdr"><h2>🏠 房屋試算 <small>房貸・出租・出售</small></h2>
- <div class="seg" id="srcSeg"><button data-s="demo" onclick="setSrc('demo')">示範資料</button><button data-s="mine" onclick="setSrc('mine')">我的資料</button></div></div>
-<div class="h" id="srcNote" style="margin:0 2px 6px"></div>
+<div class="hdr"><h2>🏠 房屋試算 <small>房貸・出租・出售</small></h2><button onclick="showGd()" style="font-size:12px;padding:4px 8px">📖 使用說明</button></div>
 
 <div class="p" id="chp">
  <div class="top"><div class="seg" id="cvSeg"><button data-v="bal" onclick="setCv('bal')">餘額・利率</button><button data-v="pay" onclick="setCv('pay')">每月月付</button><button data-v="yr" onclick="setCv('yr')">每年本息</button></div>
@@ -69,12 +72,11 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
 </div>
 
 <div class="p">
- <div class="verdict" id="verdict"></div>
- <div class="cd" id="cards"></div>
+ <div class="cd" id="cards" style="margin-top:0"></div>
  <div id="alerts"></div>
 </div>
 
-<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="R" onclick="tab('R')">🔑 出租</button><button data-t="Y" onclick="tab('Y')">📅 明細</button><button data-t="F" onclick="tab('F')">📐 公式</button><button data-t="S" onclick="tab('S')">⚙️ 設定</button></div>
+<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="R" onclick="tab('R')">🔑 出租</button><button data-t="Y" onclick="tab('Y')">📅 明細</button></div>
 
 <div class="pg" id="pgL">
  <div class="p"><b>🏦 貸款條件</b><span class="ib" role="button" tabindex="0" data-tn="貸款條件" data-tt="依銀行的貸款契約或撥款通知填寫。&#10;寬限期：只繳利息、不還本金的期數。&#10;「首次本息月／本息期數」通常不用填；如果銀行的實際扣款和這裡算的差一個月，再到「進階」修正。">ⓘ</span>
@@ -104,8 +106,42 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
   <div class="w"><table id="yt"></table></div></div>
 </div>
 
-<div class="pg" id="pgF">
- <div class="p fm"><b>📐 公式與規則</b>
+<div class="p"><div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="expJson()">⬇️ 匯出設定檔</button><label style="flex-direction:row;align-items:center;gap:4px;font-size:13px;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;background:#f1f5f9;cursor:pointer;color:var(--tx)">⬆️ 匯入 JSON<input type="file" accept=".json,application/json" onchange="impJson(this)" style="display:none"></label><button onclick="showGd()">📖 使用說明</button><button onclick="resetD()">↺ 重置</button></div>
+<div class="h" style="margin-top:6px">資料只存在這個瀏覽器 <span class="ib" role="button" tabindex="0" data-tn="資料與備份" data-tt="資料只存在這個瀏覽器，不會上傳。修改後請按「⬇️ 匯出設定檔」存到雲端硬碟或電腦；換手機、換電腦時用「⬆️ 匯入 JSON」還原。&#10;「↺ 重置」會清除目前的設定，回到預設值。">ⓘ</span><br>本工具僅供試算，非貸款、稅務或投資建議；實際以銀行與主管機關為準。</div></div>
+
+<div class="road">🛠️ 規劃中：🏘️ 租金行情 → 💸 出售與房地合一稅 → 📊 情境比較 → 🏘️ 實價登錄比較</div>
+
+<div class="md" id="gd" onclick="if(event.target===this)closeGd()"><div>
+<h2 style="text-align:left;margin:0">📖 使用說明</h2>
+<div class="h" style="margin:4px 0 6px">點目錄跳到想看的段落；每一段都可以收合。</div>
+<div class="chips"><button onclick="gdGo('g1')">🚀 開始使用</button><button onclick="gdGo('g2')">💰 房貸</button><button onclick="gdGo('g3')">🔑 出租</button><button onclick="gdGo('g4')">📅 明細</button><button onclick="gdGo('g5')">📐 公式與規則</button><button onclick="gdGo('g6')">💾 資料與備份</button><button onclick="gdGo('g7')">📚 名詞</button></div>
+
+<details class="gds" id="g1" open><summary>🚀 開始使用</summary>
+<ul><li>最上方是<b>圖表與重點卡</b>，下面有三個頁面：<b>💰 房貸</b>（貸款條件、利率、提前還款、升息壓力）、<b>🔑 出租</b>（出租 vs 自住）、<b>📅 明細</b>（逐年、逐月還款）。</li>
+<li><b>已經有設定檔</b>：到頁面最下方按「⬆️ 匯入 JSON」。</li>
+<li><b>第一次使用</b>：到 💰 房貸填貸款金額、撥款日、年限、寬限期和利率；有新青安就選「新青安」。想試算出租，再到 🔑 出租填管理費、房屋稅、地價稅和出租條件。</li>
+<li><b>加入主畫面</b>：Android（Chrome）右上「⋮」→「安裝」或「加入主畫面」。iPhone（Safari）下方「分享」→「加入主畫面」；主畫面 App 和 Safari 是分開的儲存空間，要先在 Safari 匯出、再到主畫面 App 匯入。</li></ul></details>
+
+<details class="gds" id="g2"><summary>💰 房貸</summary>
+<ul><li><b>貸款條件</b>：依貸款契約填寫。寬限期是只繳利息的期數（3 年＝36 期）。</li>
+<li><b>進階：對齊銀行實際扣款</b>：通常留空。如果銀行第一次本息扣款的月份或期數和這裡不同，填「首次本息月」和「本息期數」（例如 2026-10、324 期）。</li>
+<li><b>利率方案</b>：<b>單一利率</b>（預設）整段同一個利率；<b>新青安</b>自動產生補貼遞減的利率階梯；<b>自訂多段</b>自己輸入每一段的起始年月和利率。</li>
+<li><b>提前還款</b>：一次還款可選「縮短年限」或「降低月付」，也可以設定每月多還；會顯示省下多少利息、提早多久還清。</li>
+<li><b>升息壓力測試</b>：固定比較升息 0.25%、0.5%，再加上你輸入的升息幅度。</li>
+<li><b>圖表</b>：手指按住左右拖動看每個月的數值；「10 年｜全部」切換範圍；📌 讓圖表在捲動時固定在上方。</li></ul></details>
+
+<details class="gds" id="g3"><summary>🔑 出租</summary>
+<ul><li>比較「從某個月起改出租」和「繼續自住」，出租後第一年的<b>平均每月現金流</b>。兩邊都在還本金，差額主要來自租金、租賃所得稅、利率變化、房屋稅地價稅、修繕，以及你自己在外面租房的費用。</li>
+<li><b>四種出租方式</b>：一般出租、公益出租人、社宅包租、社宅代管。點長條或表頭可以切換要看的方式。</li>
+<li><b>新青安出租違規</b>：貸款選新青安時才會出現。<b>否</b>（預設）代表出租前會先轉貸，請填「出租後房貸利率」；<b>是</b>代表直接出租，填「違規後利率」（留空用 2.75%）。</li>
+<li><b>出租後房貸利率</b>：留空＝利率不變。有填時，在 🔑 出租頁上方的圖表會用<span style="color:#dc2626">紅色虛線</span>畫出出租後的利率或月付，紅色三角形是開始出租的月份。</li>
+<li><b>打平月租</b>：月租至少要多少，出租才和自住一樣。</li>
+<li>出租對未來出售的影響（失去自住優惠）會在之後的 💸 出售頁計算。</li></ul></details>
+
+<details class="gds" id="g4"><summary>📅 明細</summary>
+<ul><li>每年一列：期數、利率、月付範圍、本金、利息、提前還款、年底餘額（萬元）。點一年可以展開每個月（元）。綠色是今年。</li></ul></details>
+
+<details class="gds" id="g5"><summary>📐 公式與規則</summary><div class="fm">
   <h3>每月月付（本息均攤）</h3>
   <div><code>月付 = 本金 × i ÷ (1 − (1+i)<sup>−n</sup>)</code>，i＝年利率÷12，n＝剩餘本息期數。</div>
   <h3>寬限期</h3>
@@ -130,30 +166,33 @@ tr.yr{cursor:pointer}tr.yr:hover{background:#f1f5f9}tr.now td{background:#ecfdf5
   <div><code>每月現金流 = 租金收入 − 租賃所得稅 − 房貸月付 − 管理費 − 房屋稅 − 地價稅 − 修繕預備 − 自己租屋</code>，取出租後 12 個月的平均；自住時租金、所得稅、修繕、自己租屋都是 0。打平月租用二分法找出「比自住 = 0」的月租。</div>
   <h3>和銀行的差異</h3>
   <div>銀行通常按日計息、月付四捨五入到元，和這裡逐月計算會有幾元到幾十元的差距；還清前最後一期也可能略有不同。</div>
-  <div class="h" style="margin-top:10px" id="fmSrc"></div>
- </div>
-</div>
+  <div class="h" style="margin-top:10px" id="fmSrc"></div></div></details>
 
-<div class="pg" id="pgS">
- <div class="p"><b>💾 資料</b>
-  <div class="h" style="margin:4px 0 8px">「我的資料」只存在這個瀏覽器，不會上傳。換手機、換電腦前請先匯出設定檔，存到雲端硬碟或電腦。</div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="expJson()">⬇️ 匯出設定檔</button>
-   <label style="flex-direction:row;align-items:center;gap:4px;font-size:13px;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;background:#f1f5f9;cursor:pointer;color:var(--tx)">⬆️ 匯入設定檔<input type="file" accept=".json,application/json" onchange="impJson(this)" style="display:none"></label>
-   <button onclick="resetMine()">↺ 我的資料改回示範值</button></div>
- </div>
- <div class="p"><b>ℹ️ 關於</b>
-  <div class="h" style="margin-top:4px;font-size:12px;line-height:1.7" id="about"></div>
- </div>
-</div>
+<details class="gds" id="g6"><summary>💾 資料與備份</summary>
+<ul><li>資料只存在這個瀏覽器，不會上傳。修改後請按「⬇️ 匯出設定檔」存到雲端硬碟或電腦。</li>
+<li>換手機、換電腦時，用「⬆️ 匯入 JSON」還原；舊版的設定檔也可以匯入。</li>
+<li>「↺ 重置」會清除目前的設定、回到預設值，建議先匯出備份。</li></ul></details>
 
-<div class="road">🛠️ 規劃中：🏘️ 租金行情 → 💸 出售與房地合一稅 → 📊 情境比較 → 🏘️ 實價登錄比較</div>
-<div class="h" style="text-align:center;margin-bottom:20px">本工具僅供試算，非貸款、稅務或投資建議；實際以銀行與主管機關為準。</div>
+<details class="gds" id="g7"><summary>📚 名詞</summary>
+<ul><li><b>寬限期</b>：只繳利息、不還本金的期間；結束後月付會跳升。</li>
+<li><b>本息均攤／本金均攤</b>：每月金額固定／每月還一樣多的本金。</li>
+<li><b>碼</b>：0.25 個百分點；半碼＝0.125%。</li>
+<li><b>機動利率</b>：隨基準利率（中華郵政 2 年期定儲機動利率）調整的房貸利率。</li>
+<li><b>新青安</b>：青年安心成家購屋優惠貸款，政府補貼利息，前 3 年補 2 碼、之後逐年減少；必須自住。</li>
+<li><b>公益出租人</b>：把房子租給有租金補貼資格的房客，經主管機關認定，有租稅優惠。</li>
+<li><b>社宅包租／代管</b>：透過政府社會住宅包租代管計畫出租；包租是業者當二房東，代管是業者代為管理。</li>
+<li><b>租金標準</b>：財政部公告的當地一般租金標準；一般出租申報租金達標才能用較低的房屋稅率。</li>
+<li><b>邊際稅率</b>：綜合所得稅你所在的最高一級稅率，租賃所得會用這個稅率多繳稅。</li></ul>
+<div class="h" style="margin-top:6px">限制：利率、稅率依目前規定與你輸入的數字推算，不代表未來；稅務以國稅局、地方稅務局核定為準；新青安條件以承貸銀行與切結書為準。</div></details>
+
+<label style="margin-top:8px;flex-direction:row;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="gdn" style="width:auto">下次開啟不再自動顯示</label>
+<button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/tip.js?v=20261116c"></script>
-<script src="js/policy.js?v=20261116c"></script>
-<script src="js/engine.js?v=20261116c"></script>
-<script src="js/charts.js?v=20261116c"></script>
-<script src="js/ui.js?v=20261116c"></script>
-<script src="js/main.js?v=20261116c"></script>
+<script src="js/tip.js?v=20261116d"></script>
+<script src="js/policy.js?v=20261116d"></script>
+<script src="js/engine.js?v=20261116d"></script>
+<script src="js/charts.js?v=20261116d"></script>
+<script src="js/ui.js?v=20261116d"></script>
+<script src="js/main.js?v=20261116d"></script>
 </body></html>

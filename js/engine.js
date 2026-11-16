@@ -50,9 +50,11 @@ function rateAt(ladder, ym, shock) {
  return r;
 }
 
-// 實際使用的利率階梯（新青安模式自動產生；自訂模式用使用者的表）
+// 實際使用的利率階梯：single 單一利率（預設）、qingan 新青安自動產生、custom 自訂多段
 function loanLadder(L) {
- return L.rateMode === 'qingan' ? qinganLadder(String(L.disb).slice(0, 7), L.qa && L.qa.sub, L.qa && L.qa.base) : (L.ladder || []);
+ if (L.rateMode === 'qingan') return qinganLadder(String(L.disb).slice(0, 7), L.qa && L.qa.sub, L.qa && L.qa.base);
+ if (L.rateMode === 'custom') return L.ladder || [];
+ return [{ from: String(L.disb || '').slice(0, 7), r: +L.rate || 0 }];
 }
 
 // 期數相關的推導值：首期、首次本息月、本息期數、寬限期期數
@@ -160,11 +162,21 @@ function holdMonthly(H = {}) {
 //   應稅所得 = max(0, 月租 − 每屋每月免稅額) × (1 − 必要費用率)
 function rentTax(m, M, rate) { return Math.max(0, m - (M.exempt || 0)) * (1 - M.exp) * (+rate || 0) / 100; }
 
-// 新青安違規：出租那個月起改用「違規後利率」。
-// 違規會終止補貼、追回違規日起已撥的補貼並重新核定條件，經濟上等於從違規日起就沒有補貼；這裡用一個重新核定後的利率代表。
-function breachLoan(L, from, rate) {
+// 從某個月起改用新利率（出租後轉貸、或新青安違規後重新核定）
+function rateFrom(L, from, rate) {
  const lad = loanLadder(L).filter(x => YM.p(x.from) < YM.p(from));
  return { ...L, rateMode: 'custom', ladder: [...lad, { from: String(from).slice(0, 7), r: +rate }] };
+}
+const breachLoan = rateFrom;   // 舊名稱
+// 出租後的貸款：
+//  breach（新青安出租違規）：出租那個月起改用違規後利率 breachRate（留空用政策預設 2.75%）。違規會終止補貼、追回違規日起已撥的補貼並重新核定條件，經濟上等於從違規日起就沒有補貼。
+//  沒有違規：有填「出租後利率」newRate（例如轉貸成一般房貸）就從出租那個月起改用；留空＝利率不變。
+function rentStart(S) { const R = S.rent || {}; return YM.ok(R.start) ? String(R.start).slice(0, 7) : loanTiming(S.loan).amStart; }
+function rentLoan(S) {
+ const L = S.loan, R = S.rent || {}, start = rentStart(S), num = v => v === '' || v == null ? null : +v;
+ if (L.rateMode === 'qingan' && R.breach === true) { const br = num(R.breachRate); return rateFrom(L, start, br != null ? br : POLICY.qinganBreach.rate); }
+ const nr = num(R.newRate);
+ return nr != null ? rateFrom(L, start, nr) : L;
 }
 
 // 出租 vs 自住：從開始出租的月份起 12 個月的「平均每月現金流」。
@@ -172,12 +184,12 @@ function breachLoan(L, from, rate) {
 // S：{ loan, hold, rent }；rentOverride：試算不同月租（求損益兩平用）
 function rentCompare(S, modeKey, rentOverride) {
  const L = S.loan, H = S.hold || {}, Rn = S.rent || {}, M = POLICY.rentModes[modeKey];
- const start = YM.ok(Rn.start) ? String(Rn.start).slice(0, 7) : loanTiming(L).amStart;
+ const start = rentStart(S);
  const p0 = YM.p(start), win = rows => rows.filter(x => YM.p(x.ym) >= p0 && YM.p(x.ym) < p0 + 12);
  const avg = (A, k) => A.length ? A.reduce((s, x) => s + x[k], 0) / 12 : 0;
  const h = holdMonthly(H);
- const breach = L.rateMode === 'qingan' && Rn.qingan !== false;
- const sRows = win(schedule(L)), rRows = win(schedule(breach ? breachLoan(L, start, Rn.breachRate === '' || Rn.breachRate == null ? POLICY.qinganBreach.rate : Rn.breachRate) : L));
+ const breach = L.rateMode === 'qingan' && Rn.breach === true, RL = rentLoan(S);
+ const sRows = win(schedule(L)), rRows = win(schedule(RL));
  const market = rentOverride != null ? rentOverride : (+Rn.rent || 0);
  const mRent = market * M.factor, vac = M.noVac ? 0 : Math.min(12, Math.max(0, +Rn.vac || 0)), on = (12 - vac) / 12;
  const selfRate = +H.selfRate || 1;
@@ -189,7 +201,7 @@ function rentCompare(S, modeKey, rentOverride) {
  };
  const net = o => o.income - o.tax - o.pay - o.mgmt - o.houseTax - o.landTax - o.repair - o.myRent;
  self.net = net(self); rent.net = net(rent);
- return { mode: modeKey, M, start, self, rent, diff: rent.net - self.net, breach, breachInt: rent.int - self.int, months: sRows.length };
+ return { mode: modeKey, M, start, self, rent, diff: rent.net - self.net, breach, changed: RL !== L, newRate: RL !== L ? rateAt(loanLadder(RL), start) : null, breachInt: rent.int - self.int, months: sRows.length };
 }
 // 損益兩平月租：出租後每月現金流＝自住時的月租（市場租金）。找不到回傳 Infinity
 function rentBreakeven(S, modeKey) {
@@ -199,4 +211,4 @@ function rentBreakeven(S, modeKey) {
  return hi;
 }
 
-if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, breachLoan, rentCompare, rentBreakeven };
+if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, rateFrom, breachLoan, rentStart, rentLoan, rentCompare, rentBreakeven };
