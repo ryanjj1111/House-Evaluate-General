@@ -41,8 +41,8 @@ function drawMain() {
  let RM = null, rs = null;
  if (V().tab === 'R') {
   const D = rentS(); rs = rentStart(D);
-  const RL = rentLoan(D);
-  if (RL !== D.loan) { RM = new Map(); for (const x of schedule(RL)) RM.set(x.ym, x); }
+  const RA = rentRows(D);
+  if (RA !== schedule(D.loan)) { RM = new Map(); for (const x of RA) RM.set(x.ym, x); }
  }
  const rv = (x, k) => { if (!RM || YM.p(x.ym) < YM.p(rs)) return null; const y = RM.get(x.ym); return y ? y[k] : 0; };
  const avail = new Set(LINES.filter(([k, , , , m]) => m.split(' ').includes(mode) && (!m.includes('rent') || (V().tab === 'R' && (k === 'mRent' || RM)))).map(l => l[0]));

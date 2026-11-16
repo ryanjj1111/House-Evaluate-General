@@ -10,7 +10,8 @@ const DEF = {
  },
  stressPct: 0.75,
  hold: { mgmt: 2500, mgmtPer: 'm', houseTax: 3000, landTax: 300, selfRate: 1, incomeRate: 12 },
- rent: { start: '', rent: 28000, vac: 1, mgmtBy: 'owner', repair: 1000, myRent: 22000, breach: false, newRate: '', breachRate: '', mode: 'normal' },
+ rent: { start: '', rent: 28000, vac: 1, mgmtBy: 'owner', repair: 1000, myRent: 22000, breach: false, newRate: '', breachRate: '', mode: 'normal',
+  refi: { yrs: '', grace: 0, fee: 5000, scriv: 8000, setFee: '', other: 3000, penalty: 0 } },   // refi：轉貸（出租前先轉成一般房貸）
  view: {
   tab: 'L', cv: 'bal',
   rng: '10', rngN: 15, from: 'disb',   // 範圍：5／10／all／n（自訂 rngN 年）；起點：disb 撥款日、now 今天前 1 年
@@ -36,7 +37,7 @@ function norm(d) {
  const r = { ...(d.rent || {}) };
  if (r.breach == null) r.breach = false;                              // v1 的 qingan 不沿用，預設「否」
  delete r.qingan;
- d.rent = { ...clone(DEF.rent), ...r };
+ d.rent = { ...clone(DEF.rent), ...r, refi: { ...clone(DEF.rent.refi), ...(r.refi || {}) } };
  const v = d.view || {};
  d.view = { ...clone(DEF.view), ...v, hide: { ...(v.hide || {}) }, fold: { ...(v.fold || {}) }, open: { ...(v.open || {}) } };
  if (d.ui && typeof d.ui === 'object') {                              // v2 的 ui 搬進 view

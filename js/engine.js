@@ -182,11 +182,42 @@ const breachLoan = rateFrom;   // 舊名稱
 //  breach（新青安出租違規）：出租那個月起改用違規後利率 breachRate（留空用政策預設 2.75%）。違規會終止補貼、追回違規日起已撥的補貼並重新核定條件，經濟上等於從違規日起就沒有補貼。
 //  沒有違規：有填「出租後利率」newRate（例如轉貸成一般房貸）就從出租那個月起改用；留空＝利率不變。
 function rentStart(S) { const R = S.rent || {}; return YM.ok(R.start) ? String(R.start).slice(0, 7) : loanTiming(S.loan).amStart; }
+const numOrNull = v => v === '' || v == null || !Number.isFinite(+v) ? null : +v;
 function rentLoan(S) {
- const L = S.loan, R = S.rent || {}, start = rentStart(S), num = v => v === '' || v == null ? null : +v;
- if (L.rateMode === 'qingan' && R.breach === true) { const br = num(R.breachRate); return rateFrom(L, start, br != null ? br : POLICY.qinganBreach.rate); }
- const nr = num(R.newRate);
+ const L = S.loan, R = S.rent || {}, start = rentStart(S);
+ if (L.rateMode === 'qingan' && R.breach === true) { const br = numOrNull(R.breachRate); return rateFrom(L, start, br != null ? br : POLICY.qinganBreach.rate); }
+ const nr = numOrNull(R.newRate);
  return nr != null ? rateFrom(L, start, nr) : L;
+}
+// 是否轉貸：沒有違規、有填出租後利率
+function isRefi(S) { const R = S.rent || {}; return !(S.loan.rateMode === 'qingan' && R.breach === true) && numOrNull(R.newRate) != null; }
+// 出租後的還款表。
+//  轉貸時可以重設年限、寬限期：從出租那個月起，用當時的剩餘本金開一筆新貸款（年限留空＝剩下的期數不變）。
+//  其他情況（違規、只改利率、不變）沿用原本的期數，只換利率。
+function rentRows(S) {
+ const L = S.loan, R = S.rent || {}, start = rentStart(S), base = schedule(L);
+ if (!isRefi(S)) { const RL = rentLoan(S); return RL === L ? base : schedule(RL); }
+ const f = R.refi || {}, yrs = numOrNull(f.yrs), gr = Math.max(0, numOrNull(f.grace) || 0);
+ if (yrs == null && !gr) return schedule(rentLoan(S));
+ const p0 = YM.p(start), before = base.filter(x => YM.p(x.ym) < p0);
+ const bal = before.length ? before[before.length - 1].bal : (+L.amt || 0) * 1e4;
+ if (bal <= 0.5) return base;
+ const left = base.filter(x => YM.p(x.ym) >= p0).length;
+ const L2 = {
+  amt: bal / 1e4, disb: YM.add(start, -1) + '-01', first: start, n: yrs != null ? Math.max(1, Math.round(yrs * 12)) : Math.max(gr + 1, left), grace: gr,
+  method: L.method, rateMode: 'single', rate: numOrNull(R.newRate),
+  pre: (L.pre || []).filter(e => YM.ok(e.ym) && YM.p(e.ym) >= p0), extra: L.extra && YM.p(L.extra.from || start) >= p0 ? L.extra : { amt: L.extra ? L.extra.amt : 0, from: start }
+ };
+ return before.concat(schedule(L2));
+}
+// 轉貸一次性費用（元）：開辦費＋代書費＋設定規費（留空＝設定金額 × 0.1%，設定金額＝本金 × 120%）＋其他＋原貸違約金（剩餘本金 × %）
+function refiCost(S) {
+ if (!isRefi(S)) return { total: 0, bal: 0, parts: {} };
+ const f = (S.rent || {}).refi || {}, start = rentStart(S), base = schedule(S.loan), p0 = YM.p(start);
+ const before = base.filter(x => YM.p(x.ym) < p0), bal = before.length ? before[before.length - 1].bal : (+S.loan.amt || 0) * 1e4;
+ const P = POLICY.refi, setFee = numOrNull(f.setFee) != null ? +f.setFee : Math.round(bal * P.setRatio * P.setRate);
+ const parts = { fee: +f.fee || 0, scriv: +f.scriv || 0, setFee, other: +f.other || 0, penalty: bal * (+f.penalty || 0) / 100 };
+ return { total: Object.values(parts).reduce((a, b) => a + b, 0), bal, parts };
 }
 
 // 出租 vs 自住：從開始出租的月份起 12 個月的「平均每月現金流」。
@@ -198,8 +229,8 @@ function rentCompare(S, modeKey, rentOverride) {
  const p0 = YM.p(start), win = rows => rows.filter(x => YM.p(x.ym) >= p0 && YM.p(x.ym) < p0 + 12);
  const avg = (A, k) => A.length ? A.reduce((s, x) => s + x[k], 0) / 12 : 0;
  const h = holdMonthly(H);
- const breach = L.rateMode === 'qingan' && Rn.breach === true, RL = rentLoan(S);
- const sRows = win(schedule(L)), rRows = win(schedule(RL));
+ const breach = L.rateMode === 'qingan' && Rn.breach === true, RA = rentRows(S), base = schedule(L);
+ const sRows = win(base), rRows = win(RA), rc = refiCost(S);
  const market = rentOverride != null ? rentOverride : (+Rn.rent || 0);
  const mRent = market * M.factor, vac = M.noVac ? 0 : Math.min(12, Math.max(0, +Rn.vac || 0)), on = (12 - vac) / 12;
  const selfRate = +H.selfRate || 1;
@@ -207,12 +238,26 @@ function rentCompare(S, modeKey, rentOverride) {
  const rent = {
   pay: avg(rRows, 'base'), int: avg(rRows, 'int'), mgmt: Rn.mgmtBy === 'tenant' ? 0 : h.mgmt,
   houseTax: h.houseTax / selfRate * M.houseRate, landTax: h.landTax * M.landX,
-  income: mRent * on, tax: rentTax(mRent, M, H.incomeRate) * on, repair: +Rn.repair || 0, myRent: +Rn.myRent || 0, mRent, vac
+  income: mRent * on, tax: rentTax(mRent, M, H.incomeRate) * on, repair: +Rn.repair || 0, myRent: +Rn.myRent || 0, mRent, vac,
+  refi: rc.total / 12
  };
- const net = o => o.income - o.tax - o.pay - o.mgmt - o.houseTax - o.landTax - o.repair - o.myRent;
+ self.refi = 0;
+ const net = o => o.income - o.tax - o.pay - o.mgmt - o.houseTax - o.landTax - o.repair - o.myRent - o.refi;
  self.net = net(self); rent.net = net(rent);
- return { mode: modeKey, M, start, self, rent, diff: rent.net - self.net, breach, changed: RL !== L, newRate: RL !== L ? rateAt(loanLadder(RL), start) : null, breachInt: rent.int - self.int, months: sRows.length };
+ return { mode: modeKey, M, start, self, rent, diff: rent.net - self.net, breach, refi: isRefi(S), refiCost: rc, changed: RA !== base, newRate: RA !== base && rRows.length ? rRows[0].r : null, breachInt: rent.int - self.int, months: sRows.length };
 }
+// 轉貸 vs 不轉貸（新青安：直接出租違規；一般房貸：原利率）。回本月數＝一次性費用 ÷ 每月少付的月付
+function refiCompare(S) {
+ if (!isRefi(S)) return null;
+ const start = rentStart(S), p0 = YM.p(start), q = S.loan.rateMode === 'qingan';
+ const alt = { ...S, rent: { ...S.rent, breach: q, newRate: '' } };
+ const A = rentRows(S).filter(x => YM.p(x.ym) >= p0), B = rentRows(alt).filter(x => YM.p(x.ym) >= p0);
+ const m12 = X => X.slice(0, 12).reduce((s, x) => s + x.base, 0) / 12, sum = (X, k) => X.reduce((s, x) => s + x[k], 0);
+ const c = refiCost(S), save = m12(B) - m12(A);
+ return { alt: q ? 'breach' : 'keep', cost: c, payA: m12(A), payB: m12(B), save, payback: save > 0 ? Math.ceil(c.total / save) : Infinity,
+  intA: sum(A, 'int'), intB: sum(B, 'int'), endA: A.length ? A[A.length - 1].ym : '', endB: B.length ? B[B.length - 1].ym : '', rateA: A.length ? A[0].r : 0, rateB: B.length ? B[0].r : 0 };
+}
+
 // 損益兩平月租：出租後每月現金流＝自住時的月租（市場租金）。找不到回傳 Infinity
 // 差額對月租 m 是分段直線：租金 m×f×on，租賃所得稅 max(0, m×f − 免稅額)×(1−費用率)×稅率×on，其餘和月租無關。
 function rentBreakeven(S, modeKey) {
@@ -226,4 +271,4 @@ function rentBreakeven(S, modeKey) {
  return s2 > 0 ? m1 - d1 / s2 : Infinity;
 }
 
-if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, scheduleRaw, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, rateFrom, breachLoan, rentStart, rentLoan, rentCompare, rentBreakeven };
+if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, scheduleRaw, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, rateFrom, breachLoan, rentStart, rentLoan, isRefi, rentRows, refiCost, refiCompare, rentCompare, rentBreakeven };
