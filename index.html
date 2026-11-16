@@ -107,6 +107,8 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
   <div id="refiRes"></div></details>
  <details class="p fd" data-k="hold" open><summary class="fs"><b>🏠 自住時的持有成本</b></summary>
   <div id="holdIn"></div></details>
+ <details class="p fd" data-k="market" open><summary class="fs"><b>🏘️ 租金行情</b><span class="ib" role="button" tabindex="0" data-tn="租金行情" data-tt="內政部實價登錄的租賃資料，GitHub 每月自動整理一次：最近 12 個月、整戶或整層出租、住家用途，排除親友等特殊關係，含車位的扣掉車位租金。&#10;選縣市、行政區、房數，會顯示月租中位數與一半租約落在的範圍；填坪數可以用「每坪月租」換算你的房子。&#10;按「帶入」會把數字填進出租條件，之後可以再自己改。實價登錄只是成交參考，不等於你的房子一定租得到這個價格。">ⓘ</span></summary>
+  <div id="mkIn"></div></details>
  <details class="p fd" data-k="rentIn" open><summary class="fs"><b>📝 出租條件</b></summary>
   <div id="rentIn"></div></details>
 </div>
@@ -146,6 +148,7 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 <li><b>新青安出租違規</b>：貸款選新青安時才會出現。<b>否</b>（預設）代表出租前會先轉貸，請填「出租後房貸利率」；<b>是</b>代表直接出租，填「違規後利率」（留空用 2.75%）。</li>
 <li><b>出租後房貸利率</b>：留空＝利率不變。有填時，在 🔑 出租頁上方的圖表會用<span style="color:#dc2626">紅色虛線</span>畫出出租後的利率或月付，紅色三角形是開始出租的月份。</li>
 <li><b>打平月租</b>：月租至少要多少，出租才和自住一樣。</li>
+<li><b>🏘️ 租金行情</b>：實價登錄最近 12 個月的租約，依縣市、行政區、房數顯示月租中位數；填坪數可以換算你的房子。按「帶入」填進市場月租或自己搬出後的房租。資料每月自動更新。</li>
 <li><b>🔁 轉貸試算</b>：填了出租後房貸利率就會出現「轉貸設定」：新貸款年限（可以重新拉長）、新寬限期、開辦費、代書費、設定規費（留空自動算）、其他費用、原貸違約金。會比較轉貸後出租和直接出租（違規）的月付、總利息，算出幾個月回本；轉貸費用也會攤在出租比較表的第一年。</li>
 <li><b>出租方式比較</b>標題旁的 ⓘ：目前選的方式怎麼計算，以及新青安、自住優惠、房屋稅、地價稅的注意事項。</li>
 <li>出租對未來出售的影響（失去自住優惠）會在之後的 💸 出售頁計算。</li></ul></details>
@@ -203,15 +206,16 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/tip.js?v=202611162305"></script>
-<script src="js/policy.js?v=202611162305"></script>
-<script src="js/state.js?v=202611162305"></script>
-<script src="js/fields.js?v=202611162305"></script>
-<script src="js/engine.js?v=202611162305"></script>
-<script src="js/charts.js?v=202611162305"></script>
-<script src="js/ui-core.js?v=202611162305"></script>
-<script src="js/ui-loan.js?v=202611162305"></script>
-<script src="js/ui-rent.js?v=202611162305"></script>
-<script src="js/ui-chart.js?v=202611162305"></script>
-<script src="js/main.js?v=202611162305"></script>
+<script src="js/tip.js?v=202611162308"></script>
+<script src="js/policy.js?v=202611162308"></script>
+<script src="js/state.js?v=202611162308"></script>
+<script src="js/fields.js?v=202611162308"></script>
+<script src="js/engine.js?v=202611162308"></script>
+<script src="js/charts.js?v=202611162308"></script>
+<script src="js/ui-core.js?v=202611162308"></script>
+<script src="js/ui-loan.js?v=202611162308"></script>
+<script src="js/ui-rent.js?v=202611162308"></script>
+<script src="js/ui-market.js?v=202611162308"></script>
+<script src="js/ui-chart.js?v=202611162308"></script>
+<script src="js/main.js?v=202611162308"></script>
 </body></html>

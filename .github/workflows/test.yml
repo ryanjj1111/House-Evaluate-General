@@ -2,10 +2,10 @@
 name: 計算測試
 on:
   pull_request:
-    paths: ['js/**', 'tools/test/**', '.github/workflows/test.yml']
+    paths: ['js/**', 'tools/**', 'index.html', '.github/workflows/test.yml']
   push:
     branches: [main]
-    paths: ['js/**', 'tools/test/**', '.github/workflows/test.yml']
+    paths: ['js/**', 'tools/**', 'index.html', '.github/workflows/test.yml']
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,3 +15,4 @@ jobs:
         with:
           node-version: 20
       - run: node tools/test/engine-test.mjs
+      - run: python3 tools/test/rent_data_test.py

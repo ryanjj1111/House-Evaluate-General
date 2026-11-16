@@ -9,6 +9,7 @@ const DEF = {
   pre: [], extra: { amt: 0, from: '' }
  },
  stressPct: 0.75,
+ house: { city: '', dist: '', rooms: 3, ping: '' },   // 房屋：縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）
  hold: { mgmt: 2500, mgmtPer: 'm', houseTax: 3000, landTax: 300, selfRate: 1, incomeRate: 12 },
  rent: { start: '', rent: 28000, vac: 1, mgmtBy: 'owner', repair: 1000, myRent: 22000, breach: false, newRate: '', breachRate: '', mode: 'normal',
   refi: { yrs: '', grace: 0, fee: 5000, scriv: 8000, setFee: '', other: 3000, penalty: 0 } },   // refi：轉貸（出租前先轉成一般房貸）
@@ -34,6 +35,7 @@ function norm(d) {
  if (d.stressPct == null || d.stressPct === '') d.stressPct = d.stressBp != null ? +d.stressBp / 100 : DEF.stressPct;
  delete d.stressBp;
  d.hold = { ...clone(DEF.hold), ...(d.hold || {}) };
+ d.house = { ...clone(DEF.house), ...(d.house || {}) };
  const r = { ...(d.rent || {}) };
  if (r.breach == null) r.breach = false;                              // v1 的 qingan 不沿用，預設「否」
  delete r.qingan;

@@ -1,5 +1,5 @@
 // 房屋試算｜啟動與整體流程：build() 重畫全部；calc() 只重算數字
-function buildInputs() { buildLoanInputs(); buildRentInputs(); }
+function buildInputs() { buildLoanInputs(); buildRentInputs(); renderMarket(); }
 function calc() {
  if (calcLoan()) { buildTable(); drawMain(); calcRent(); }
  else buildTable();
