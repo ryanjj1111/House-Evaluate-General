@@ -45,7 +45,7 @@ label.ck{flex-direction:row;align-items:center;gap:4px;font-size:12px;color:var(
 .rngn{align-items:center;gap:4px;font-size:12px;margin:2px 0 4px}.rngn input{width:64px;padding:3px 5px;font-size:13px}
 .lg span{cursor:pointer;white-space:nowrap;display:inline-block;margin:1px 0}.lg span.off{opacity:.35;text-decoration:line-through}
 input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
-#cvi{font-size:11.5px;min-height:17px;margin:2px 0;color:#334155;display:flex;flex-wrap:wrap;gap:1px 8px}
+#cvi,.cvi{font-size:11.5px;min-height:17px;margin:2px 0;color:#334155;display:flex;flex-wrap:wrap;gap:1px 8px}
 .lg{font-size:11px;text-align:center;color:var(--mut);margin-top:2px}.lg i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin:0 3px 0 8px}
 .row{display:grid;gap:4px;margin-bottom:4px;align-items:end}.r-lad{grid-template-columns:1fr 1fr 34px}.r-pre{grid-template-columns:1.1fr .8fr 1fr 34px}
 .row button{padding:6px 0}
@@ -60,6 +60,13 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 .gds{border-top:1px solid var(--line);padding:6px 0}.gds>summary{font-weight:700;font-size:15px;cursor:pointer;padding:4px 0}
 .chips{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}.chips button{font-size:12px;padding:3px 8px}
 .hl.r{background:#fee2e2;color:#991b1b}
+.wf{display:grid;grid-template-columns:96px 1fr 52px;gap:6px;align-items:center;font-size:12.5px;padding:3px 0}.wf.tot{border-top:1px solid var(--line);font-weight:700;padding-top:5px}
+.wft{position:relative;height:14px;background:#f1f5f9;border-radius:4px}.wft i{position:absolute;top:0;bottom:0;border-radius:4px}.wfv{text-align:right;font-variant-numeric:tabular-nums}
+.band{position:relative;height:26px;border-radius:6px;overflow:hidden;background:#f1f5f9;margin:4px 0 2px}.band i{position:absolute;top:0;bottom:0;font-style:normal;font-size:11px;font-weight:700;color:#334155;display:flex;align-items:center;justify-content:center;border-right:1px solid #fff}
+.band b.sf{position:absolute;top:1px;bottom:1px;border:2px solid #16a34a;border-radius:5px;pointer-events:none}.band u{position:absolute;top:0;bottom:0;width:2px;background:#0f766e}.band u.sl{background:#dc2626;width:3px}
+.bandl{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:4px}
+#saleCv{height:200px}
+.seg button[disabled]{opacity:.45;cursor:not-allowed}
 .rb{display:grid;grid-template-columns:72px 1fr 64px;gap:6px;align-items:center;padding:5px 4px;border-radius:6px;cursor:pointer;font-size:12.5px}.rb.on{background:#f0fdfa;outline:1px solid #99f6e4}
 .rbt{position:relative;height:14px;background:#f1f5f9;border-radius:7px}.rbt::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#94a3b8}
 .rbt i{position:absolute;top:0;bottom:0;border-radius:7px}.rbt i.pos{background:#16a34a}.rbt i.neg{background:#f87171}.rbv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
@@ -84,7 +91,7 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
  <div id="alerts"></div>
 </details>
 
-<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="R" onclick="tab('R')">🔑 出租</button><button data-t="Y" onclick="tab('Y')">📅 明細</button></div>
+<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="R" onclick="tab('R')">🔑 出租</button><button data-t="X" onclick="tab('X')">💸 出售</button><button data-t="Y" onclick="tab('Y')">📅 明細</button></div>
 
 <div class="pg" id="pgL">
  <details class="p fd" data-k="loan" open><summary class="fs"><b>🏦 貸款條件</b><span class="ib" role="button" tabindex="0" data-tn="貸款條件" data-tt="依銀行的貸款契約或撥款通知填寫。&#10;寬限期：只繳利息、不還本金的期數。&#10;「首次本息月／本息期數」通常不用填；如果銀行的實際扣款和這裡算的差一個月，再到「進階」修正。">ⓘ</span></summary>
@@ -113,6 +120,20 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
   <div id="rentIn"></div></details>
 </div>
 
+<div class="pg" id="pgX">
+ <details class="p fd" data-k="saleRes" open><summary class="fs"><b>💸 出售試算</b><span class="ib" role="button" tabindex="0" data-tn="出售試算" data-tt="假設在預計出售日賣掉：售價扣掉仲介與出售費用、土地增值稅、房地合一稅，再還清房貸，剩下的就是實拿。&#10;同時比較兩條路：一直自住，或照 🔑 出租頁的計畫出租（從開始出租一直租到出售）。出租過會失去房地合一的自住優惠和自用土地增值稅率。&#10;稅額是依目前規定試算，實際以國稅局、地方稅務局核定為準。">ⓘ</span></summary>
+  <div class="verdict" id="saleRes"></div></details>
+ <details class="p fd" data-k="saleWf" open><summary class="fs"><b>🧾 售出後實拿</b></summary>
+  <div id="saleSeg" style="margin-bottom:6px"></div><div id="saleWf"></div></details>
+ <details class="p fd" data-k="saleTax" open><summary class="fs"><b>📋 房地合一稅明細</b><span class="ib" role="button" tabindex="0" data-tn="房地合一稅明細" data-tt="課稅所得＝成交價 − 取得成本 − 取得費用 − 改良裝修 − 出售費用 − 土地漲價總數額。&#10;持有期間從取得日（所有權登記日）算到出售日，按日計算：2 年以內 45%、超過 2 年未逾 5 年 35%、超過 5 年未逾 10 年 20%、超過 10 年 15%。&#10;自住優惠：設籍並居住滿 6 年、出售前 6 年內沒有出租、6 年內沒用過 → 課稅所得 400 萬以內免稅，超過部分 10%。">ⓘ</span></summary>
+  <div class="w"><table class="st rt" id="saleT"></table></div><div id="saleWhy" style="margin-top:4px"></div></details>
+ <details class="p fd" data-k="saleTime" open><summary class="fs"><b>🗓️ 出售時點</b><span class="ib" role="button" tabindex="0" data-tn="出售時點" data-tt="上面的色帶是持有期間對應的房地合一稅率，綠色框線是可以用自住優惠的期間。&#10;下面的圖是「如果在那個月賣」的實拿（左軸）和房地合一稅（右軸），從今天起 12 年；紅色虛線是照出租計畫出租的情況。房價依目前估價和每年成長率推算。">ⓘ</span></summary>
+  <div id="saleBand"></div>
+  <div id="saleCvi" class="cvi"></div><canvas id="saleCv"></canvas><div class="lg" id="saleLg"></div></details>
+ <details class="p fd" data-k="saleIn" open><summary class="fs"><b>🏠 買進與出售條件</b></summary>
+  <div id="saleIn"></div></details>
+</div>
+
 <div class="pg" id="pgY">
  <details class="p fd" data-k="table" open><summary class="fs"><b>📅 還款明細</b><span class="ib" role="button" tabindex="0" data-tn="還款明細" data-tt="點一年可以展開每個月的月付、利息、本金。綠色是今年。&#10;年度金額單位為萬元，月份明細為元。">ⓘ</span></summary>
   <div class="w"><table id="yt"></table></div></details>
@@ -126,7 +147,7 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 <div class="md" id="gd" onclick="if(event.target===this)closeGd()"><div>
 <h2 style="text-align:left;margin:0">📖 使用說明</h2>
 <div class="h" style="margin:4px 0 6px">點目錄跳到想看的段落；每一段都可以收合。</div>
-<div class="chips"><button onclick="gdGo('g1')">🚀 開始使用</button><button onclick="gdGo('g2')">💰 房貸</button><button onclick="gdGo('g3')">🔑 出租</button><button onclick="gdGo('g4')">📅 明細</button><button onclick="gdGo('g5')">📐 公式與規則</button><button onclick="gdGo('g6')">💾 資料與備份</button><button onclick="gdGo('g7')">📚 名詞</button></div>
+<div class="chips"><button onclick="gdGo('g1')">🚀 開始使用</button><button onclick="gdGo('g2')">💰 房貸</button><button onclick="gdGo('g3')">🔑 出租</button><button onclick="gdGo('g8')">💸 出售</button><button onclick="gdGo('g4')">📅 明細</button><button onclick="gdGo('g5')">📐 公式與規則</button><button onclick="gdGo('g6')">💾 資料與備份</button><button onclick="gdGo('g7')">📚 名詞</button></div>
 
 <details class="gds" id="g1" open><summary>🚀 開始使用</summary>
 <ul><li>最上方是<b>圖表與重點卡</b>，每個區塊點標題都可以收合（會記住）。下面有三個頁面：<b>💰 房貸</b>（貸款條件、利率、提前還款、升息壓力）、<b>🔑 出租</b>（出租 vs 自住）、<b>📅 明細</b>（逐年、逐月還款）。</li>
@@ -152,6 +173,13 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 <li><b>🔁 轉貸試算</b>：填了出租後房貸利率就會出現「轉貸設定」：新貸款年限（可以重新拉長）、新寬限期、開辦費、代書費、設定規費（留空自動算）、其他費用、原貸違約金。會比較轉貸後出租和直接出租（違規）的月付、總利息，算出幾個月回本；轉貸費用也會攤在出租比較表的第一年。</li>
 <li><b>出租方式比較</b>標題旁的 ⓘ：目前選的方式怎麼計算，以及新青安、自住優惠、房屋稅、地價稅的注意事項。</li>
 <li>出租對未來出售的影響（失去自住優惠）會在之後的 💸 出售頁計算。</li></ul></details>
+
+<details class="gds" id="g8"><summary>💸 出售</summary>
+<ul><li>在「🏠 買進與出售條件」填取得日（所有權登記日）、取得價、取得費用、設籍自住起日，以及預計出售日、售價（目前估價 × 每年成長，或直接填）、仲介費、土地漲價總數額。</li>
+<li><b>💸 出售試算</b>：比較一直自住和照出租計畫出租兩條路的房地合一稅與實拿。</li>
+<li><b>🧾 售出後實拿</b>：售價 → 出售費用 → 土地增值稅 → 房地合一稅 → 還清房貸 → 實拿。</li>
+<li><b>📋 房地合一稅明細</b>：課稅所得怎麼算、持有幾年、適用稅率或自住優惠；不能用自住優惠時會寫出原因。</li>
+<li><b>🗓️ 出售時點</b>：色帶是持有期間的稅率，綠框是可以用自住優惠的期間；圖表是每個月賣出的實拿和稅，看哪個時間點賣最划算。</li></ul></details>
 
 <details class="gds" id="g4"><summary>📅 明細</summary>
 <ul><li>每年一列：期數、利率、月付範圍、本金、利息、提前還款、年底餘額（萬元）。點一年可以展開每個月（元）。綠色是今年。</li></ul></details>
@@ -181,6 +209,10 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
   <div>從出租那個月起，用當時的剩餘本金開一筆新貸款：新利率、新年限（留空＝剩下的期數）、新寬限期。一次性費用＝開辦費＋代書費＋設定規費（設定金額＝本金 × 120%，規費 0.1%）＋其他＋原貸違約金（剩餘本金 × %）。<code>回本月數 = 一次性費用 ÷ 每月少付的月付</code>。</div>
   <h3>出租 vs 自住</h3>
   <div><code>每月現金流 = 租金收入 − 租賃所得稅 − 房貸月付 − 管理費 − 房屋稅 − 地價稅 − 修繕預備 − 自己租屋 − 轉貸費用÷12</code>，取出租後 12 個月的平均；自住時租金、所得稅、修繕、自己租屋都是 0。差額對月租是分段直線（超過免稅額後要扣所得稅），打平月租直接解出「比自住 = 0」的月租。</div>
+  <h3>出售：房地合一稅</h3>
+  <div><code>課稅所得 = 成交價 − 取得成本 − 取得費用 − 改良 − 出售費用 − 土地漲價總數額</code>。出售費用沒有單據時按成交價 3%、上限 30 萬。持有期間按日：2 年以內 45%、超過 2 年未逾 5 年 35%、超過 5 年未逾 10 年 20%、超過 10 年 15%。自住優惠（設籍居住滿 6 年、出售前 6 年沒有出租、6 年內沒用過）：<code>稅 = max(0, 課稅所得 − 400 萬) × 10%</code>。</div>
+  <h3>出售：土地增值稅、實拿</h3>
+  <div>土地增值稅＝土地漲價總數額 × 10%（自用住宅、出售前 1 年沒有出租、一生一次）或 20%（一般用地第一級）。<code>實拿 = 售價 − 出售費用 − 土地增值稅 − 房地合一稅 − 出售前的房貸餘額</code>。售價＝目前估價 × (1＋每年成長)<sup>年數</sup>。</div>
   <h3>和銀行的差異</h3>
   <div>銀行通常按日計息、月付四捨五入到元，和這裡逐月計算會有幾元到幾十元的差距；還清前最後一期也可能略有不同。</div>
   <div class="h" style="margin-top:10px" id="fmSrc"></div></div></details>
@@ -206,16 +238,17 @@ input.bad,input:invalid{border-color:#dc2626;background:#fef2f2}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/tip.js?v=202611162308"></script>
-<script src="js/policy.js?v=202611162308"></script>
-<script src="js/state.js?v=202611162308"></script>
-<script src="js/fields.js?v=202611162308"></script>
-<script src="js/engine.js?v=202611162308"></script>
-<script src="js/charts.js?v=202611162308"></script>
-<script src="js/ui-core.js?v=202611162308"></script>
-<script src="js/ui-loan.js?v=202611162308"></script>
-<script src="js/ui-rent.js?v=202611162308"></script>
-<script src="js/ui-market.js?v=202611162308"></script>
-<script src="js/ui-chart.js?v=202611162308"></script>
-<script src="js/main.js?v=202611162308"></script>
+<script src="js/tip.js?v=202611162312"></script>
+<script src="js/policy.js?v=202611162312"></script>
+<script src="js/state.js?v=202611162312"></script>
+<script src="js/fields.js?v=202611162312"></script>
+<script src="js/engine.js?v=202611162312"></script>
+<script src="js/charts.js?v=202611162312"></script>
+<script src="js/ui-core.js?v=202611162312"></script>
+<script src="js/ui-loan.js?v=202611162312"></script>
+<script src="js/ui-rent.js?v=202611162312"></script>
+<script src="js/ui-market.js?v=202611162312"></script>
+<script src="js/ui-sale.js?v=202611162312"></script>
+<script src="js/ui-chart.js?v=202611162312"></script>
+<script src="js/main.js?v=202611162312"></script>
 </body></html>

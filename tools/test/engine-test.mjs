@@ -5,7 +5,7 @@ import fs from 'fs'; import vm from 'vm'; import path from 'path'; import { file
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const ctx = vm.createContext({ console });
 for (const f of ['js/policy.js', 'js/state.js', 'js/engine.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
-vm.runInContext('globalThis.__E={YM,pmt,nper,qinganLadder,rateAt,loanLadder,loanTiming,schedule,loanSummary,byYear,prepayEffect,stress,holdMonthly,rentTax,rateFrom,breachLoan,rentStart,rentLoan,isRefi,rentRows,refiCost,refiCompare,rentCompare,rentBreakeven,POLICY,DEF,norm}', ctx);
+vm.runInContext('globalThis.__E={YM,pmt,nper,qinganLadder,rateAt,loanLadder,loanTiming,schedule,loanSummary,byYear,prepayEffect,stress,holdMonthly,rentTax,rateFrom,breachLoan,rentStart,rentLoan,isRefi,rentRows,refiCost,refiCompare,rentCompare,rentBreakeven,POLICY,DEF,norm,DT,holdRate,nextRateDrop,saleDates,saleCalc,saleScan}', ctx);
 const E = ctx.__E;
 
 let fail = 0, pass = 0;
@@ -140,6 +140,37 @@ ok('轉貸 vs 違規：月付較低、回本月數＝費用÷每月少付', rx.a
 const cR = E.rentCompare(Sr, 'normal');
 ok('出租比較含轉貸費用÷12', cR.refi && near(cR.rent.refi, rc.total / 12, 1e-9) && cR.self.refi === 0);
 ok('設定檔轉換補上轉貸欄位', E.norm({ rent: { refi: { fee: 1 } } }).rent.refi.scriv === 8000 && E.norm({ rent: { refi: { fee: 1 } } }).rent.refi.fee === 1);
+
+// ---------- 12c. 出售與房地合一稅（虛構）
+ok('稅率邊界：滿 2 年當天 45%、隔天 35%', E.holdRate('2024-03-15', '2026-03-15') === 45 && E.holdRate('2024-03-15', '2026-03-16') === 35);
+ok('稅率邊界：滿 5 年當天 35%、滿 10 年當天 20%、之後 15%', E.holdRate('2024-03-15', '2029-03-15') === 35 && E.holdRate('2024-03-15', '2029-03-16') === 20 && E.holdRate('2024-03-15', '2034-03-15') === 20 && E.holdRate('2024-03-15', '2034-03-16') === 15);
+ok('2/29 加年', E.DT.addY('2024-02-29', 1) === '2025-02-28');
+ok('下一次降稅日', E.nextRateDrop('2024-03-15', '2027-01-01') === '2029-03-16' && E.nextRateDrop('2024-03-15', '2035-01-01') === null);
+const SS = { loan: L, hold: Sx.hold, rent: { ...Sx.rent, breach: false, newRate: '' },
+ house: { buyDate: '2024-03-10', price: 1000, buyCost: 200000, improve: 0, selfSince: '' },
+ sale: { date: '2030-03-20', priceMode: 'fixed', price: 1600, est: '', growth: 0, brokerPct: 2, other: 10000, feeMode: 'actual', landGain: 20, usedSelf: false, landUsed: false } };
+const sa = E.saleCalc(SS, '2026-01');
+const gainA = 16e6 - 10e6 - 2e5 - (16e6 * 0.02 + 10000) - 2e5;
+ok('課稅所得', near(sa.gain, gainA, 0.01), [sa.gain, gainA]);
+ok('自住滿 6 年：400 萬內免稅、超過 10%', sa.selfOK && near(sa.tax, (gainA - 4e6) * 0.1, 0.01), [sa.tax, sa.why]);
+ok('土增稅自用 10%', sa.landSelf && near(sa.landTax, 2e5 * 0.1, 0.01));
+const balAt = E.schedule(L).filter(x => x.ym < '2030-03').pop().bal;
+ok('還清房貸＝出售前一個月的餘額', near(sa.loanBal, balAt, 0.01));
+ok('實拿＝售價−費用−土增稅−房地合一稅−房貸', near(sa.net, 16e6 - sa.fee - sa.landTax - sa.tax - balAt, 0.01));
+const sr = E.saleCalc(SS, '2026-01', { rented: true });
+ok('出租過：不能用自住優惠，改用 20%（持有 6 年）', !sr.selfOK && sr.rate === 20 && near(sr.tax, gainA * 0.2, 0.01) && sr.why.some(w => w.includes('出租')));
+ok('出租過：土增稅一般 20%', !sr.landSelf && near(sr.landTax, 2e5 * 0.2, 0.01));
+const s5 = E.saleCalc({ ...SS, sale: { ...SS.sale, date: '2028-06-01' } }, '2026-01');
+ok('自住未滿 6 年：用持有期間稅率 35%', !s5.selfOK && s5.rate === 35 && near(s5.tax, (16e6 - 10e6 - 2e5 - (16e6 * 0.02 + 10000) - 2e5) * 0.35, 0.01));
+const snc = E.saleCalc({ ...SS, sale: { ...SS.sale, feeMode: 'nocert' } }, '2026-01');
+ok('沒有單據：費用＝成交價 3%，上限 30 萬', near(snc.fee, 300000, 0.01));
+const sg = E.saleCalc({ ...SS, sale: { ...SS.sale, priceMode: 'growth', est: 1200, growth: 2 } }, '2026-03');
+ok('房價成長：目前估價 × (1+g)^年數', near(sg.price, 12e6 * Math.pow(1.02, 4), 1));
+const sd = E.saleDates({ ...SS, house: { ...SS.house, buyDate: '' }, sale: { ...SS.sale, date: '' } });
+ok('預設：取得日＝撥款日、出售日＝自住滿 6 年隔天', sd.buy === '2024-03-15' && sd.sale === '2030-03-16');
+const scan = E.saleScan(SS, '2026-01', '2028-01', 36);
+const jump = scan.findIndex(x => x.self.selfOK);
+ok('逐月掃描：滿 6 年那個月起可用自住優惠', scan.length === 36 && jump > 0 && scan[jump].ym === '2030-03' && !scan[jump - 1].self.selfOK, scan[jump] && scan[jump].ym);
 
 // ---------- 13. 設定檔轉換（舊版也能匯入）
 const d0 = E.norm({});

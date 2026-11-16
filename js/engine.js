@@ -271,4 +271,75 @@ function rentBreakeven(S, modeKey) {
  return s2 > 0 ? m1 - d1 / s2 : Infinity;
 }
 
-if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, scheduleRaw, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, rateFrom, breachLoan, rentStart, rentLoan, isRefi, rentRows, refiCost, refiCompare, rentCompare, rentBreakeven };
+// ================= 出售（P3）=================
+// 日期工具（'2029-11-15'）
+const DT = {
+ ok(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) && !isNaN(Date.parse(s)); },
+ addY(s, n) { const [y, m, d] = String(s).split('-').map(Number); const t = new Date(Date.UTC(y + n, m - 1, d)); if (t.getUTCMonth() !== m - 1) t.setUTCDate(0); return t.toISOString().slice(0, 10); },
+ addD(s, n) { const t = new Date(s + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); },
+ ym(s) { return String(s).slice(0, 7); }
+};
+// 房地合一稅率：出售日在「取得日＋2 年」當天以前 45%，之後依級距（法條：在 2 年以內、超過 2 年未逾 5 年…）
+function holdRate(buy, sale) {
+ for (const [y, r] of POLICY.houseLand.brackets) if (y === Infinity || sale <= DT.addY(buy, y)) return r;
+ return 15;
+}
+// 下一次稅率下降的日期（超過級距年數的隔天）
+function nextRateDrop(buy, sale) {
+ for (const [y] of POLICY.houseLand.brackets) if (y !== Infinity && sale <= DT.addY(buy, y)) return DT.addD(DT.addY(buy, y), 1);
+ return null;
+}
+// 房屋資料的預設值：取得日留空用撥款日、自住起始留空用取得日、出售日留空用「自住滿 6 年的隔天」
+function saleDates(S) {
+ const H = S.house || {}, buy = DT.ok(H.buyDate) ? H.buyDate : (DT.ok(S.loan.disb) ? S.loan.disb : '2020-01-01');
+ const self = DT.ok(H.selfSince) ? H.selfSince : buy;
+ const sale = DT.ok((S.sale || {}).date) ? S.sale.date : DT.addD(DT.addY(self, POLICY.houseLand.self.years), 1);
+ return { buy, self, sale };
+}
+// 出售試算。rented：依出租計畫（出租那個月起一直出租到出售）；now：今天年月（房價成長從今天算）
+function saleCalc(S, now, opt = {}) {
+ const H = S.house || {}, X = S.sale || {}, P = POLICY.houseLand, D = saleDates(S), sale = opt.date || D.sale;
+ const est = (+X.est > 0 ? +X.est : +H.price || 0) * 1e4, g = (+X.growth || 0) / 100;
+ const yrs = Math.max(0, YM.diff(now, DT.ym(sale))) / 12;
+ const price = X.priceMode === 'fixed' && +X.price > 0 ? +X.price * 1e4 : est * Math.pow(1 + g, yrs);
+ const rs = YM.ok((S.rent || {}).start) ? S.rent.start : null;
+ const rented = !!opt.rented && rs && YM.p(rs) <= YM.p(DT.ym(sale));
+ // 費用：有單據＝仲介費＋其他；沒單據＝成交價 3%，上限 30 萬
+ const broker = price * (+X.brokerPct || 0) / 100, other = +X.other || 0;
+ const fee = X.feeMode === 'nocert' ? Math.min(price * P.noCertPct / 100, P.noCertCap) : broker + other;
+ const cost = (+H.price || 0) * 1e4, buyCost = +H.buyCost || 0, improve = (+H.improve || 0) * 1e4, landGain = (+X.landGain || 0) * 1e4;
+ const gain = price - cost - buyCost - improve - fee - landGain;
+ // 自住優惠
+ const selfFull = sale >= DT.addY(D.self, P.self.years);
+ const why = [];
+ if (!selfFull) why.push(`設籍自住到出售還沒滿 ${P.self.years} 年（${DT.addY(D.self, P.self.years)} 才滿）`);
+ if (rented) why.push(`出售前 ${P.self.years} 年內有出租（${ymTxtE(rs)} 起）`);
+ if (X.usedSelf) why.push(`${P.self.years} 年內已經用過自住優惠`);
+ const selfOK = !why.length;
+ const rate = holdRate(D.buy, sale);
+ let tax, taxNote;
+ if (selfOK) { tax = Math.max(0, gain - P.self.exempt) * P.self.rate / 100; taxNote = `自住優惠：${P.self.exempt / 1e4} 萬以內免稅，超過部分 ${P.self.rate}%`; }
+ else { tax = Math.max(0, gain) * rate / 100; taxNote = `稅率 ${rate}%`; }
+ // 土地增值稅
+ const landSelf = !rented && !X.landUsed;
+ const landTax = landGain * (landSelf ? POLICY.landInc.self : POLICY.landInc.normal) / 100;
+ // 還清房貸
+ const rows = rented ? rentRows(S) : schedule(S.loan), pS = YM.p(DT.ym(sale));
+ const before = rows.filter(x => YM.p(x.ym) < pS);
+ const loanBal = before.length ? before[before.length - 1].bal : (rows.length && YM.p(rows[0].ym) >= pS ? (+S.loan.amt || 0) * 1e4 : 0);
+ const net = price - fee - landTax - tax - loanBal;
+ return { sale, price, fee, broker, other, cost, buyCost, improve, landGain, gain, rate, selfOK, why, tax, taxNote, landSelf, landTax, loanBal, net, rented, held: holdYears(D.buy, sale), next: nextRateDrop(D.buy, sale) };
+}
+const ymTxtE = s => String(s || '').replace('-', '/');
+function holdYears(buy, sale) { return (Date.parse(sale) - Date.parse(buy)) / (365.2425 * 864e5); }
+// 逐月掃描出售時點（從 from 起 n 個月）：一直自住 vs 依出租計畫
+function saleScan(S, now, from, n) {
+ const D = saleDates(S), day = D.buy.slice(8, 10), out = [];
+ for (let k = 0; k < n; k++) {
+  const ym = YM.add(from, k), dd = Math.min(+day, 28), date = `${ym}-${String(dd).padStart(2, '0')}`;
+  out.push({ ym, self: saleCalc(S, now, { date }), rent: saleCalc(S, now, { date, rented: true }) });
+ }
+ return out;
+}
+
+if (typeof module !== 'undefined') module.exports = { YM, pmt, nper, qinganLadder, rateAt, loanLadder, loanTiming, schedule, scheduleRaw, loanSummary, byYear, prepayEffect, stress, holdMonthly, rentTax, rateFrom, breachLoan, rentStart, rentLoan, isRefi, rentRows, refiCost, refiCompare, rentCompare, rentBreakeven, DT, holdRate, nextRateDrop, saleDates, saleCalc, saleScan };
