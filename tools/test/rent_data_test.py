@@ -11,7 +11,7 @@ HEAD = ["鄉鎮市區", "交易標的", "土地位置建物門牌", "租賃年�
 EN = ["The villages and towns urban district", "transaction sign"] + ["x"] * (len(HEAD) - 2)
 
 
-def row(dist, ym, rooms, rent, area=99.17, typ="住宅大樓(11層含以上有電梯)", use="住家用", car=0, car_area=0, note="", sid=None, kind="整棟(戶)出租", target="房地(土地+建物)"):
+def row(dist, ym, rooms, rent, area=99.17, typ="住宅大樓(11層含以上有電梯)", use="住家用", car=0, car_area=0, note="", sid=None, kind="整棟(戶)出租", target="租賃房屋"):
     row.i = getattr(row, "i", 0) + 1
     return [dist, target, "某路某號", ym, typ, use, str(area), str(rooms), "2", "2", str(rent), "", str(car_area), str(car), note, sid or f"ID{row.i}", kind]
 
@@ -52,20 +52,22 @@ with tempfile.TemporaryDirectory() as td:
         row("北屯區", "1150501", 5, 45000),                                   # 5 房 → 4
     ]
     rows.append(rows[0][:])                                                     # 重複編號，只算一次
+    rows.append(row("南區", "1150601", 3, 30000, target="租賃房屋+車位"))       # 含車位寫法，要算
+    rows.append(row("南區", "1150601", 3, 30000, target="租賃土地"))            # 排除：只租土地
     z1 = td / "s1.zip"; make_zip(z1, rows)
-    z2 = td / "s2.zip"; make_zip(z2, [row("西屯區", "1150501", 2, 25000)], code="b")
+    z2 = td / "s2.zip"; make_zip(z2, [row("西屯區", "1150501", 2, 25000, target="房地(土地+建物)")], code="b")  # 舊格式寫法也要算
     out = td / "out"
     F.main(["--out", str(out), "--zip", str(z1), str(z2), "--today", "2026-11-16"])
     idx = json.loads((out / "index.json").read_text(encoding="utf-8"))
     ok("期間", idx["window"] == {"from": "2025-10", "to": "2026-09"}, idx["window"])
-    ok("縣市索引", idx["counties"]["b"]["name"] == "臺中市" and idx["counties"]["b"]["n"] == 9, idx["counties"])
+    ok("縣市索引", idx["counties"]["b"]["name"] == "臺中市" and idx["counties"]["b"]["n"] == 10, idx["counties"])
     b = json.loads((out / "b.json").read_text(encoding="utf-8"))["districts"]
     s3 = b["南區"]["rooms"]["3"]
-    ok("南區 3 房筆數（排除特殊、套房、商業、無房數、期間外、重複）", s3["n"] == 6, s3)
-    ok("南區 3 房中位數", s3["med"] == round((31000 + 32000) / 2), s3)   # 28000,30000,31000,32000,33000,50000
+    ok("南區 3 房筆數（排除特殊、套房、商業、無房數、期間外、重複、只租土地）", s3["n"] == 7, s3)
+    ok("南區 3 房中位數", s3["med"] == 31000, s3)   # 28000,30000,30000,31000,32000,33000,50000
     ok("25%／75% 位數", s3["p25"] < s3["med"] < s3["p75"], s3)
-    ok("每坪月租（扣車位面積）", abs(s3["ping"] - 31500 / (99.17 / F.PING)) < 2, s3)
-    ok("型態分組", b["南區"]["type"]["華廈"]["n"] == 1 and b["南區"]["type"]["大樓"]["n"] == 6, b["南區"]["type"])
+    ok("每坪月租（扣車位面積）", abs(s3["ping"] - 31000 / (99.17 / F.PING)) < 2, s3)
+    ok("型態分組", b["南區"]["type"]["華廈"]["n"] == 1 and b["南區"]["type"]["大樓"]["n"] == 7, b["南區"]["type"])
     ok("5 房以上歸到 4", b["北屯區"]["rooms"]["4"]["n"] == 1)
     ok("多個 zip 合併", b["西屯區"]["all"]["n"] == 1)
     ok("季別代碼", F.season_codes(__import__("datetime").date(2026, 11, 16), 3) == ["115S3", "115S2", "115S1"])
