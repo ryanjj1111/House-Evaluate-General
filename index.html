@@ -3,13 +3,13 @@
 <title>房屋試算｜房貸・出租・出售</title>
 <style>
 /* 介面改版 PR 1：墨青配色（比照投資帳本）。顏色都用變數，亮色／暗色兩組（data-theme）。
-   語意：--up 賺／多（紅）、--dn 賠／少（綠）、--ok 通過（墨青）、--bad 警告、要注意、出租後（橘）、--warn 提醒（琥珀）。
+   語意：--pos 正數、多（綠）、--neg 負數、少（紅）；--up／--dn 保留跟投資帳本相同的紅漲綠跌；--ok 通過（墨青）、--bad 警告、要注意、出租後（橘）、--warn 提醒（琥珀）。
    --c1～--c8 給圖表；--b45～--b15 是房地合一稅率色帶。 */
 :root{color-scheme:light;
 --bg:#f3f5f4;--card:#fff;--soft:#f7f9f8;--soft2:#edf1ef;--line:#e0e6e3;--line2:#c9d3cf;--inbg:#fff;--dis:#eef2f0;
 --tx:#15201e;--tx2:#33413d;--mut:#56655f;
 --pri:#0f6e66;--onpri:#fff;--pris:#e1f0ee;--prib:#a9d3cd;--prit:#0b524c;--acc:var(--pri);
---up:#c62828;--dn:#17744a;
+--up:#c62828;--dn:#17744a;--pos:#17744a;--neg:#c62828;
 --ok:#0f6e66;--okbg:#e1f0ee;--okb:#a9d3cd;--okt:#0b524c;
 --bad:#a64a06;--badbg:#fdecd9;--badb:#f3b27a;--badt:#8a3c06;
 --warn:#7d6300;--warnbg:#fbf1cf;--warnb:#e8cf74;--warnt:#6b5300;
@@ -21,7 +21,7 @@
 --bg:#0c1211;--card:#151d1c;--soft:#111918;--soft2:#1b2523;--line:#25312f;--line2:#34423f;--inbg:#111918;--dis:#1a2422;
 --tx:#e6eeec;--tx2:#c3cfcb;--mut:#93a39e;
 --pri:#3fc2b2;--onpri:#04211e;--pris:#123029;--prib:#24544d;--prit:#86ddd1;
---up:#ff7c72;--dn:#55c891;
+--up:#ff7c72;--dn:#55c891;--pos:#55c891;--neg:#ff7c72;
 --ok:#3fc2b2;--okbg:#123029;--okb:#24544d;--okt:#86ddd1;
 --bad:#f59e42;--badbg:#36210d;--badb:#6b4114;--badt:#fbc488;
 --warn:#e3c04a;--warnbg:#2e2810;--warnb:#5c4f17;--warnt:#f0d77e;
@@ -30,6 +30,7 @@
 --b45:#4a2622;--b35:#46301a;--b20:#3b3416;--b15:#173a35;
 --shd:rgba(0,0,0,.35);--ovl:rgba(0,0,0,.6)}
 b,strong,th{font-weight:600}
+.mkt{width:100%;font-size:12px;margin-top:4px}.mkt td,.mkt th{padding:4px 3px}.mkt td:nth-child(3),.mkt td:nth-child(4),.mkt th:nth-child(3),.mkt th:nth-child(4){text-align:right;white-space:nowrap}.mkt td:first-child{white-space:nowrap;color:var(--mut)}.mkt td:nth-child(2),.mkt th:nth-child(2),.mkt th:first-child{text-align:left}.mkf>summary{cursor:pointer;font-weight:400}.mkt sup{color:var(--mut)}
 /* 線條圖示（js/icons.js，Lucide ISC）：顯示時把 emoji 換成跟文字同色的 SVG */
 .i{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.22em;flex:none}.i-tick{width:1.2em;height:1.2em}
 .i-ok{color:var(--ok)}.i-bad{color:var(--bad)}.i-wn{color:var(--warn)}.i-mut{color:var(--mut)}.i-dn{color:var(--dn)}
@@ -50,7 +51,7 @@ h2{font-size:17px;margin:6px 0}
 .tipbx{background:var(--card);border-radius:16px;max-width:460px;width:100%;max-height:70vh;overflow:auto;padding:14px 16px 18px;box-shadow:0 10px 30px var(--shd);margin-bottom:max(8px,env(safe-area-inset-bottom))}
 .tiph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}.tiph b{font-size:15px}.tipx{width:36px;height:36px;border:0;background:var(--soft2);color:var(--tx);border-radius:18px;font-size:15px;cursor:pointer}
 .tipc{font-size:14px;line-height:1.65;color:var(--tx2);white-space:pre-line}@media(min-width:700px){.tipov{align-items:center}}
-.bad{color:var(--bad)}.ok{color:var(--ok)}.wn{color:var(--warn)}.up{color:var(--up)}.dn{color:var(--dn)}
+.bad{color:var(--bad)}.ok{color:var(--ok)}.wn{color:var(--warn)}.up{color:var(--up)}.dn{color:var(--dn)}.pos{color:var(--pos)}.neg{color:var(--neg)}
 .verdict{background:var(--okbg);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.7}
 .hl{border-radius:8px;padding:7px 9px;font-size:12.5px;margin-top:6px;line-height:1.6}.hl.y{background:var(--warnbg);color:var(--warnt)}.hl.g{background:var(--okbg);color:var(--okt)}.hl.b{background:var(--tgb);color:var(--tgbt)}
 canvas{width:100%;height:210px;display:block;touch-action:pan-y}
@@ -102,7 +103,7 @@ input.bad,input:invalid{border-color:var(--bad);background:var(--badbg)}
 .seg button[disabled]{opacity:.45;cursor:not-allowed}
 .rb{display:grid;grid-template-columns:72px 1fr 64px;gap:6px;align-items:center;padding:5px 4px;border-radius:6px;cursor:pointer;font-size:12.5px}.rb.on{background:var(--pris);outline:1px solid var(--prib)}
 .rbt{position:relative;height:14px;background:var(--soft2);border-radius:7px}.rbt::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line2)}
-.rbt i{position:absolute;top:0;bottom:0;border-radius:7px}.rbt i.pos{background:var(--up)}.rbt i.neg{background:var(--dn)}.rbv{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.rbt i{position:absolute;top:0;bottom:0;border-radius:7px}.rbt i.pos{background:var(--pos)}.rbt i.neg{background:var(--neg)}.rbv{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .rt td,.rt th{font-size:12px;padding:4px 5px}.rt td:first-child,.rt th:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}.rt th:first-child{background:var(--soft2)}
 .rt .sel{background:var(--pris)}.rt th.sel{background:var(--prib)}.rt tr.tot td{border-top:1px solid var(--line2)}.rt tr.mut td{color:var(--mut);font-size:11px}
 /* ===== 介面改版 PR 3（比照投資帳本第三批）：4px 間距、圓角三級、少用陰影、少量動效 ===== */
@@ -174,7 +175,7 @@ details>summary{transition:color .15s}
   <div id="refiRes"></div></details>
  <details class="p fd" data-k="hold" open><summary class="fs"><b>🏠 自住時的持有成本</b></summary>
   <div id="holdIn"></div></details>
- <details class="p fd" data-k="market" open><summary class="fs"><b>🏘️ 租金行情</b><span class="ib" role="button" tabindex="0" data-tn="租金行情" data-tt="內政部實價登錄的租賃資料，GitHub 每月自動整理一次：最近 12 個月、整戶或整層出租、住家用途，排除親友等特殊關係，含車位的扣掉車位租金。&#10;選縣市、行政區、房數，會顯示月租中位數與一半租約落在的範圍；填坪數可以用「每坪月租」換算你的房子。&#10;按「帶入」會把數字填進出租條件，之後可以再自己改。實價登錄只是成交參考，不等於你的房子一定租得到這個價格。">ⓘ</span></summary>
+ <details class="p fd" data-k="market" data-shut><summary class="fs"><b>🏘️ 租金行情</b><span class="ib" role="button" tabindex="0" data-tn="租金行情" data-tt="內政部實價登錄的租賃資料，GitHub 每月自動整理一次：整戶或整層出租、住家用途，排除親友等特殊關係。&#10;用你的房屋資料找相近的租約：同行政區、同房數、屋齡相近、同建物型態、有沒有車位一樣；預設排除社宅包租代管（租金通常比市價低）。樣本太少會自動放寬，並寫出放寬了什麼。&#10;你有車位時，金額用含車位的總租金；沒有車位的租約會加上這區的車位租金中位數再比。&#10;只有透過包租代管業者或仲介的租約一定要登錄，屋主自己出租的常常沒登錄，所以行情通常偏低，看最相近的幾筆一起判斷。&#10;按「帶入」才會把數字填進出租條件，之後可以再自己改。">ⓘ</span></summary>
   <div id="mkIn"></div></details>
  <details class="p fd" data-k="rentIn" open><summary class="fs"><b>📝 出租條件</b></summary>
   <div id="rentIn"></div></details>
@@ -229,7 +230,7 @@ details>summary{transition:color .15s}
 <li><b>新青安出租違規</b>：貸款選新青安時才會出現。<b>否</b>（預設）代表出租前會先轉貸，請填「出租後房貸利率」；<b>是</b>代表直接出租，填「違規後利率」（留空用 2.75%）。</li>
 <li><b>出租後房貸利率</b>：留空＝利率不變。有填時，在 🔑 出租頁上方的圖表會用<span style="color:var(--bad)">橘色虛線</span>畫出出租後的利率或月付，橘色三角形是開始出租的月份。</li>
 <li><b>打平月租</b>：月租至少要多少，出租才和自住一樣。</li>
-<li><b>🏘️ 租金行情</b>：實價登錄最近 12 個月的租約，依縣市、行政區、房數顯示月租中位數；填坪數可以換算你的房子。按「帶入」填進市場月租或自己搬出後的房租。資料每月自動更新。</li>
+<li><b>🏘️ 租金行情</b>（預設收起來）：用你的房屋資料（行政區、房數、完工年份、建物型態、車位）從實價登錄找相近的租約，顯示月租中位數、一半落在的範圍和最相近的幾筆；樣本太少會自動放寬條件。「比對條件」可以改屋齡範圍、型態、期間、要不要排除社宅包租代管。按「帶入」填進市場月租或自己搬出後的房租。資料每月自動更新；有登錄的租約通常比實際行情低。</li>
 <li><b>🔁 轉貸試算</b>：填了出租後房貸利率就會出現「轉貸設定」：新貸款年限（可以重新拉長）、新寬限期、開辦費、代書費、設定規費（留空自動算）、其他費用、原貸違約金。會比較轉貸後出租和直接出租（違規）的月付、總利息，算出幾個月回本；轉貸費用也會攤在出租比較表的第一年。</li>
 <li><b>出租方式比較</b>標題旁的 ⓘ：目前選的方式怎麼計算，以及新青安、自住優惠、房屋稅、地價稅的注意事項。</li>
 <li>出租對未來出售的影響（失去自住優惠）會在之後的 💸 出售頁計算。</li></ul></details>
@@ -299,19 +300,19 @@ details>summary{transition:color .15s}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/theme.js?v=202611230915"></script>
-<script src="js/icons.js?v=202611230915"></script>
-<script src="js/tip.js?v=202611230915"></script>
-<script src="js/policy.js?v=202611230915"></script>
-<script src="js/state.js?v=202611230915"></script>
-<script src="js/fields.js?v=202611230915"></script>
-<script src="js/engine.js?v=202611230915"></script>
-<script src="js/charts.js?v=202611230915"></script>
-<script src="js/ui-core.js?v=202611230915"></script>
-<script src="js/ui-loan.js?v=202611230915"></script>
-<script src="js/ui-rent.js?v=202611230915"></script>
-<script src="js/ui-market.js?v=202611230915"></script>
-<script src="js/ui-sale.js?v=202611230915"></script>
-<script src="js/ui-chart.js?v=202611230915"></script>
-<script src="js/main.js?v=202611230915"></script>
+<script src="js/theme.js?v=202611231729"></script>
+<script src="js/icons.js?v=202611231729"></script>
+<script src="js/tip.js?v=202611231729"></script>
+<script src="js/policy.js?v=202611231729"></script>
+<script src="js/state.js?v=202611231729"></script>
+<script src="js/fields.js?v=202611231729"></script>
+<script src="js/engine.js?v=202611231729"></script>
+<script src="js/charts.js?v=202611231729"></script>
+<script src="js/ui-core.js?v=202611231729"></script>
+<script src="js/ui-loan.js?v=202611231729"></script>
+<script src="js/ui-rent.js?v=202611231729"></script>
+<script src="js/ui-market.js?v=202611231729"></script>
+<script src="js/ui-sale.js?v=202611231729"></script>
+<script src="js/ui-chart.js?v=202611231729"></script>
+<script src="js/main.js?v=202611231729"></script>
 </body></html>

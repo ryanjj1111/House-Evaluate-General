@@ -2,9 +2,11 @@
 """租金行情：下載內政部實價登錄開放資料（不動產租賃），整理成各縣市、各行政區的租金統計。
 
 輸出（給網頁讀）：
-  data/rent/index.json      更新日、資料期間、各縣市代碼與筆數
-  data/rent/<代碼>.json     某縣市各行政區：全部、依房數（1～4，4＝4 房以上）、依建物型態的
-                            月租中位數、25%／75% 位數、每坪月租中位數、筆數
+  data/rent/index.json            更新日、資料期間、各縣市代碼與筆數、逐筆資料的欄位說明
+  data/rent/<代碼>.json           某縣市各行政區：全部、依房數（1～4，4＝4 房以上）、依建物型態的
+                                  月租中位數、25%／75% 位數、每坪月租中位數、筆數（最近 12 個月）
+  data/rent/<代碼>/<行政區>.json  逐筆精簡資料（最近 24 個月），網頁依「跟我的房子相近」自己篩選：
+                                  月份、房數、完工年、建物型態、有無車位、月租（不含車位）、車位租金、坪數、標記
 
 篩選：整棟(戶)出租或分層出租、住家用途、有房數；排除親友等特殊關係租約；
       含車位的租約扣掉車位租金與車位面積。期間：最近 12 個月（到本月往前 2 個月，因為登錄有延遲）。
@@ -45,8 +47,12 @@ TARGET_OK = ("房屋", "建物", "房地")   # 交易標的：租賃資料多半
 STAGES = ["出租型態", "交易標的", "主要用途", "特殊關係", "期間", "房數", "租金", "行政區"]
 WINDOW = 12   # 月
 LAG = 2       # 月
-SEASONS = 5   # 最多試幾季（最新一季常常還沒發布）
+SEASONS = 10  # 最多試幾季（最新一季常常還沒發布）；要湊滿 24 個月約 8 季
 PING = 3.305785
+ROWS_WINDOW = 24   # 逐筆資料保留的月數（篩得比較細時樣本才夠）
+TYPES = ["大樓", "華廈", "公寓", "透天", "套房", "其他"]
+F_SOCIAL, F_FURN, F_LIFT = 1, 2, 4   # 標記：社宅包租代管、附家具、有電梯
+ROW_COLS = ["ym", "rooms", "built", "type", "park", "rent", "car", "ping", "flags"]
 REQUIRED = ["鄉鎮市區", "交易標的", "租賃年月日", "主要用途", "建物現況格局-房", "總額元", "編號", "出租型態"]
 TZ = timezone(timedelta(hours=8))
 
@@ -90,6 +96,17 @@ def roc_month(s):
     return (y, m) if 1 <= m <= 12 else None
 
 
+def roc_year(s):
+    """建築完成年月 '1060815'／'1060800'／'106' → 2017；看不懂回 0。"""
+    d = re.sub(r"\D", "", s or "")
+    if len(d) >= 6:
+        d = d[:-4]
+    if not d:
+        return 0
+    y = int(d) + 1911
+    return y if 1930 <= y <= 2100 else 0
+
+
 def num(s):
     try:
         return float(str(s).replace(",", "").strip())
@@ -123,7 +140,7 @@ def rental_rows(zbytes):
 
 
 def clean(row, start, end, why=None):
-    """符合條件回傳 (行政區, 房數鍵, 型態, 月租, 每坪月租或 None)；否則 None。
+    """符合條件回傳 dict（行政區、年月、房數、型態、月租、車位…）；否則 None。
     why 是 Counter 時，記下被哪一關擋掉（方便看官方格式是否改了）。"""
     def no(stage):
         if why is not None:
@@ -143,7 +160,8 @@ def clean(row, start, end, why=None):
     rooms = int(num(row.get("建物現況格局-房")))
     if rooms <= 0:
         return no("房數")
-    rent = num(row.get("總額元")) - num(row.get("車位總額元"))
+    car = num(row.get("車位總額元"))
+    rent = num(row.get("總額元")) - car
     if not 1000 <= rent <= 1_000_000:
         return no("租金")
     dist = row.get("鄉鎮市區", "").strip()
@@ -153,11 +171,19 @@ def clean(row, start, end, why=None):
     tb = next((b for k, b in TYPE_BUCKET if k in t), "其他")
     area = num(row.get("建物總面積平方公尺")) - num(row.get("車位面積平方公尺"))
     per = rent / (area / PING) if area >= 10 else None
-    return dist, str(min(rooms, 4)), tb, rent, per
+    park = car > 0 or bool(row.get("車位類別", "").strip()) or "車位" in row.get("交易標的", "")
+    svc = row.get("租賃住宅服務", "") + row.get("備註", "")
+    flags = ((F_SOCIAL if ("社會住宅" in svc or "社宅" in svc) else 0)
+             | (F_FURN if row.get("有無附傢俱", "").strip() == "有" else 0)
+             | (F_LIFT if row.get("有無電梯", "").strip() == "有" or "有電梯" in t else 0))
+    return {"dist": dist, "ym": ym, "rooms": rooms, "rk": str(min(rooms, 4)), "type": tb, "rent": rent, "per": per,
+            "car": car, "park": park, "ping": area / PING if area >= 10 else 0, "built": roc_year(row.get("建築完成年月")), "flags": flags}
 
 
-def report(total, why, seen_vals):
+def report(total, why, seen_vals, head=None):
     """印出每一關擋掉幾筆，以及幾個關鍵欄位實際出現的值。"""
+    if head:
+        print("CSV 欄位：" + "、".join(head))
     print(f"讀到 {total} 筆租約，篩選情況：")
     left = total
     for st in STAGES:
@@ -183,11 +209,15 @@ def stats(vals, pers):
 def build(zips, today):
     end = month_add(today.year, today.month, -LAG)
     start = month_add(*end, -(WINDOW - 1))
-    seen, data = set(), {}
+    rstart = month_add(*end, -(ROWS_WINDOW - 1))
+    seen, data, rows = set(), {}, {}
     why, total = Counter(), 0
-    seen_vals = {k: Counter() for k in ("出租型態", "交易標的", "主要用途")}
+    seen_vals = {k: Counter() for k in ("出租型態", "交易標的", "主要用途", "建物型態", "租賃住宅服務", "有無附傢俱", "有無電梯", "車位類別")}
+    head = None
     for z in zips:
         for code, row in rental_rows(z):
+            if head is None:
+                head = list(row.keys())
             sid = row.get("編號", "").strip()
             if sid and sid in seen:
                 continue
@@ -195,15 +225,19 @@ def build(zips, today):
             total += 1
             for k, c in seen_vals.items():
                 c[row.get(k, "").strip()] += 1
-            r = clean(row, start, end, why)
+            r = clean(row, rstart, end, why)
             if not r:
                 continue
-            dist, rk, tb, rent, per = r
-            d = data.setdefault(code, {}).setdefault(dist, {"all": ([], []), "rooms": {}, "type": {}})
-            for bucket in (d["all"], d["rooms"].setdefault(rk, ([], [])), d["type"].setdefault(tb, ([], []))):
-                bucket[0].append(rent)
-                bucket[1].append(per)
-    report(total, why, seen_vals)
+            rows.setdefault(code, {}).setdefault(r["dist"], []).append([
+                r["ym"][0] * 100 + r["ym"][1], min(r["rooms"], 9), r["built"], TYPES.index(r["type"]), int(r["park"]),
+                round(r["rent"]), round(r["car"]), round(r["ping"], 1), r["flags"]])
+            if not (start <= r["ym"]):
+                continue   # 統計只用最近 12 個月
+            d = data.setdefault(code, {}).setdefault(r["dist"], {"all": ([], []), "rooms": {}, "type": {}})
+            for bucket in (d["all"], d["rooms"].setdefault(r["rk"], ([], [])), d["type"].setdefault(r["type"], ([], []))):
+                bucket[0].append(r["rent"])
+                bucket[1].append(r["per"])
+    report(total, why, seen_vals, head)
     if not data:
         raise RuntimeError("篩選後沒有任何租約，官方欄位的寫法可能改了，請看上面各關擋掉的筆數與常見值")
     out = {}
@@ -216,7 +250,11 @@ def build(zips, today):
             }
             for name, d in sorted(dists.items())
         }
-    return out, f"{start[0]}-{start[1]:02d}", f"{end[0]}-{end[1]:02d}"
+    for code in rows:
+        for dist in rows[code]:
+            rows[code][dist].sort(key=lambda x: -x[0])
+    fmt = lambda ym: f"{ym[0]}-{ym[1]:02d}"
+    return out, fmt(start), fmt(end), rows, fmt(rstart)
 
 
 def main(argv=None):
@@ -244,7 +282,7 @@ def main(argv=None):
                 print(f"季資料 {s}：{len(z) // 1024} KB")
             else:
                 print(f"季資料 {s} 還沒發布")
-            if len(zips) >= 4:
+            if len(zips) >= 8:
                 break
         try:
             z = download(CURRENT_URL)
@@ -255,7 +293,7 @@ def main(argv=None):
             print(f"本期資料下載失敗，只用季資料：{e}")
     if not zips:
         raise RuntimeError("沒有下載到任何資料")
-    res, frm, to = build(zips, today)
+    res, frm, to, rows, rfrm = build(zips, today)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     index = {
@@ -264,6 +302,8 @@ def main(argv=None):
         "license": "政府資料開放授權條款－第 1 版",
         "filter": "整棟(戶)出租與分層出租、住家用途；排除親友等特殊關係；含車位者扣除車位租金與面積；房數 4 代表 4 房以上",
         "window": {"from": frm, "to": to},
+        "rows": {"from": rfrm, "to": to, "cols": ROW_COLS, "types": TYPES,
+                 "note": "ym 年月；built 完工年（0＝不明）；type 是 types 的位置；park 1＝含車位；rent 月租（不含車位）；car 車位租金；ping 坪數（不含車位）；flags 1 社宅包租代管、2 附家具、4 有電梯"},
         "files": files,
         "updated": today.isoformat(),
         "counties": {},
@@ -271,6 +311,12 @@ def main(argv=None):
     for code, dists in sorted(res.items()):
         n = sum(d["all"]["n"] for d in dists.values())
         index["counties"][code] = {"name": COUNTIES[code], "n": n}
+        dd = out / code
+        dd.mkdir(exist_ok=True)
+        for old in dd.glob("*.json"):
+            old.unlink()
+        for dist, rs in rows.get(code, {}).items():
+            (dd / f"{dist}.json").write_text(json.dumps({"county": COUNTIES[code], "dist": dist, "rows": rs}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         (out / f"{code}.json").write_text(json.dumps({"county": COUNTIES[code], "window": index["window"], "districts": dists}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (out / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"完成：{len(res)} 個縣市，期間 {frm} ~ {to}")

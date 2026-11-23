@@ -20,7 +20,7 @@ function calcRent() {
  const D = rentS(), C = RK.map(k => rentCompare(D, k)), BE = RK.map(k => rentBreakeven(D, k));
  const sel = RK.includes(D.rent.mode) ? D.rent.mode : 'normal', ci = RK.indexOf(sel), c = C[ci], self = c.self;
  const best = C.reduce((b, x, i) => x.diff > C[b].diff ? i : b, 0);
- let v = `從 <b>${ymTxt(c.start)}</b> 開始<b>${c.M.name}</b>、市場月租 ${f0(+D.rent.rent || 0)} 元：出租後第一年平均每月現金流 <b class="${c.diff >= 0 ? 'up' : 'dn'}">比自住${c.diff >= 0 ? '多' : '少'} ${f0(Math.abs(c.diff))} 元</b>。`;
+ let v = `從 <b>${ymTxt(c.start)}</b> 開始<b>${c.M.name}</b>、市場月租 ${f0(+D.rent.rent || 0)} 元：出租後第一年平均每月現金流 <b class="${c.diff >= 0 ? 'pos' : 'neg'}">比自住${c.diff >= 0 ? '多' : '少'} ${f0(Math.abs(c.diff))} 元</b>。`;
  v += BE[ci] === Infinity ? '怎麼調高月租都無法打平。' : `月租至少要 <b>${f0(BE[ci])} 元</b>才和自住打平。`;
  if (best !== ci) v += `「${C[best].M.name}」比較好（每月${C[best].diff >= 0 ? '多' : '少'} ${f0(Math.abs(C[best].diff))} 元）。`;
  const ry = numOrNull(D.rent.refi && D.rent.refi.yrs);
@@ -29,7 +29,7 @@ function calcRent() {
 
  // 長條：各出租方式和自住的差額
  const mx = Math.max(1, ...C.map(x => Math.abs(x.diff)));
- $('rentBars').innerHTML = C.map((x, i) => `<div class="rb${i === ci ? ' on' : ''}" onclick="setMode('${RK[i]}')"><span class="rbn">${x.M.name}</span><span class="rbt"><i class="${x.diff >= 0 ? 'pos' : 'neg'}" style="width:${Math.abs(x.diff) / mx * 50}%;${x.diff >= 0 ? 'left:50%' : 'right:50%'}"></i></span><span class="rbv ${x.diff >= 0 ? 'up' : 'dn'}">${sg(x.diff)}</span></div>`).join('') +
+ $('rentBars').innerHTML = C.map((x, i) => `<div class="rb${i === ci ? ' on' : ''}" onclick="setMode('${RK[i]}')"><span class="rbn">${x.M.name}</span><span class="rbt"><i class="${x.diff >= 0 ? 'pos' : 'neg'}" style="width:${Math.abs(x.diff) / mx * 50}%;${x.diff >= 0 ? 'left:50%' : 'right:50%'}"></i></span><span class="rbv ${x.diff >= 0 ? 'pos' : 'neg'}">${sg(x.diff)}</span></div>`).join('') +
   '<div class="h" style="text-align:center;margin-top:2px">每月現金流：出租 − 自住（元，出租後第一年平均）｜點一列看細項</div>';
 
  // 比較表
@@ -49,7 +49,7 @@ function calcRent() {
   row('自己租屋', k => k.o.myRent ? neg(k.o.myRent) : '—') +
   (c.refi ? row('轉貸費用（攤 12 個月）', k => k.o.refi ? neg(k.o.refi) : '—') : '') +
   row('<b>每月現金流</b>', k => `<b>${sg(k.o.net)}</b>`, 'tot') +
-  row('<b>比自住</b>', k => k.d == null ? '—' : `<b class="${k.d >= 0 ? 'up' : 'dn'}">${sg(k.d)}</b>`, 'tot') +
+  row('<b>比自住</b>', k => k.d == null ? '—' : `<b class="${k.d >= 0 ? 'pos' : 'neg'}">${sg(k.d)}</b>`, 'tot') +
   row('打平月租', k => k.be == null ? '—' : k.be === Infinity ? '無法' : f0(k.be));
 
  // 註記與提醒都放進標題旁的 ⓘ

@@ -12,7 +12,7 @@ function calcSale() {
  // 結論
  let v = `<b>${d.sale.replace(/-/g, '/')}</b> 以 <b>${w1(a.price)} 萬</b>賣出${S.sale.priceMode === 'fixed' ? '' : `（目前估 ${w1((+S.sale.est > 0 ? +S.sale.est : +S.house.price) * 1e4)} 萬、每年 ${+S.sale.growth || 0}%）`}：`;
  v += `一直自住，房地合一稅 <b>${w1(a.tax)} 萬</b>（${a.selfOK ? '可用自住優惠' : a.taxNote}），還完房貸實拿 <b>${w1(a.net)} 萬</b>。`;
- if (rentHit && a.net - b.net >= 1000) v += `如果照出租計畫從 ${ymTxt(rs)} 出租，稅變成 <b>${w1(b.tax)} 萬</b>、實拿 ${w1(b.net)} 萬，<b class="dn">少 ${w1(a.net - b.net)} 萬</b>。`;
+ if (rentHit && a.net - b.net >= 1000) v += `如果照出租計畫從 ${ymTxt(rs)} 出租，稅變成 <b>${w1(b.tax)} 萬</b>、實拿 ${w1(b.net)} 萬，<b class="neg">少 ${w1(a.net - b.net)} 萬</b>。`;
  else if (rentHit) v += `照出租計畫出租，這個時間點的稅和實拿差不多（${a.selfOK ? '' : '本來就還不能用自住優惠，'}差 ${w1(a.net - b.net)} 萬）。`;
  if (!a.selfOK && a.next) v += `<br><span class="h">再等到 ${a.next.replace(/-/g, '/')} 出售，稅率會再降一級。</span>`;
  $('saleRes').innerHTML = v;
@@ -27,7 +27,7 @@ function calcSale() {
   const from = i ? cum + v2 : 0, to = i ? cum : v2; if (i) cum += v2; else cum = v2;
   const l = Math.min(from, to) / mx * 100, w = Math.abs(v2) / mx * 100;
   return `<div class="wf"><span>${n}</span><span class="wft"><i style="left:${Math.max(0, l)}%;width:${Math.max(0.5, w)}%;background:${thV(c)}"></i></span><span class="wfv">${i ? (v2 ? '−' : '') : ''}${w1(Math.abs(v2))}</span></div>`;
- }).join('') + `<div class="wf tot"><span>實拿</span><span class="wft"><i style="left:0;width:${Math.max(0, x.net) / mx * 100}%;background:var(--up)"></i></span><span class="wfv ${x.net >= 0 ? 'up' : 'dn'}">${w1(x.net)}</span></div><div class="h" style="text-align:right">單位：萬元</div>`;
+ }).join('') + `<div class="wf tot"><span>實拿</span><span class="wft"><i style="left:0;width:${Math.max(0, x.net) / mx * 100}%;background:var(--pos)"></i></span><span class="wfv ${x.net >= 0 ? 'pos' : 'neg'}">${w1(x.net)}</span></div><div class="h" style="text-align:right">單位：萬元</div>`;
 
  // 明細表（兩條路）
  const row = (t, f, cls = '') => `<tr class="${cls}"><td>${t}</td><td>${f(a)}</td><td>${rentHit ? f(b) : '—'}</td></tr>`;
