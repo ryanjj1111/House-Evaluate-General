@@ -1,6 +1,6 @@
 // 房屋試算｜資料格式：預設值與舊設定檔轉換（純函式，不碰畫面與 localStorage；可用 node 測試）
 // 一份資料 S = { v, loan, stressPct, hold, rent, view }。view 是畫面偏好（圖表、收合、分頁），一起存、一起匯出。
-const DATA_V = 3;
+const DATA_V = 4;   // v4：房屋多了完工年、建物型態、車位；畫面多了租金行情的比對條件
 const DEF = {
  v: DATA_V,
  loan: {
@@ -9,7 +9,7 @@ const DEF = {
   pre: [], extra: { amt: 0, from: '' }
  },
  stressPct: 0.75,
- house: { city: '', dist: '', rooms: 3, ping: '',      // 縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）
+ house: { city: '', dist: '', rooms: 3, ping: '', built: '', btype: '大樓', park: false,   // 縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）、完工年（西元）、建物型態、有沒有車位
   buyDate: '', price: 1000, buyCost: 0, improve: 0, selfSince: '' },   // 取得日（所有權登記日，留空＝撥款日）、取得價（萬）、取得費用（元）、改良（萬）、設籍自住起日
  sale: { date: '', priceMode: 'growth', est: '', growth: 1.5, price: '', brokerPct: 2, other: 10000, feeMode: 'actual', landGain: 0, usedSelf: false, landUsed: false, path: 'self' },
  hold: { mgmt: 2500, mgmtPer: 'm', houseTax: 3000, landTax: 300, selfRate: 1, incomeRate: 12 },
@@ -18,7 +18,8 @@ const DEF = {
  view: {
   tab: 'L', cv: 'bal',
   rng: '10', rngN: 15, from: 'disb',   // 範圍：5／10／all／n（自訂 rngN 年）；起點：disb 撥款日、now 今天前 1 年
-  hide: {}, fold: {}, pin: 0, open: {}  // hide：關掉的線與卡片；fold：收起來的區塊；open：明細展開的年份
+  hide: {}, fold: {}, pin: 0, open: {},  // hide：關掉的線與卡片；fold：收合狀態（1 收、0 開，沒記錄用預設）；open：明細展開的年份
+  mk: { age: '5', type: 'same', park: 'same', m: '12', soc: true, furn: false }   // 租金行情比對條件：屋齡 ±幾年、型態、車位、月數、排除社宅包租代管、排除附家具
  }
 };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -44,7 +45,7 @@ function norm(d) {
  delete r.qingan;
  d.rent = { ...clone(DEF.rent), ...r, refi: { ...clone(DEF.rent.refi), ...(r.refi || {}) } };
  const v = d.view || {};
- d.view = { ...clone(DEF.view), ...v, hide: { ...(v.hide || {}) }, fold: { ...(v.fold || {}) }, open: { ...(v.open || {}) } };
+ d.view = { ...clone(DEF.view), ...v, hide: { ...(v.hide || {}) }, fold: { ...(v.fold || {}) }, open: { ...(v.open || {}) }, mk: { ...clone(DEF.view.mk), ...(v.mk || {}) } };
  if (d.ui && typeof d.ui === 'object') {                              // v2 的 ui 搬進 view
   for (const k of ['tab', 'cv', 'rng', 'pin']) if (d.ui[k] != null && v[k] == null) d.view[k] = d.ui[k];
   if (d.ui.open && !v.open) d.view.open = { ...d.ui.open };

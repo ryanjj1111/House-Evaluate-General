@@ -81,13 +81,13 @@ function onField(e) {
  clearTimeout(onField.t); onField.t = setTimeout(calc, e.type === 'input' ? 250 : 0);
 }
 
-// ---------- 區塊收合（<details class="p fd" data-k="...">，收起來的記在 view.fold）
+// ---------- 區塊收合（<details class="p fd" data-k="...">，狀態記在 view.fold：1 收、0 開；沒記錄時有 data-shut 的預設收起來）
 function applyFold() {
- document.querySelectorAll('details.fd[data-k]').forEach(d => { d.open = !V().fold[d.dataset.k]; });
+ document.querySelectorAll('details.fd[data-k]').forEach(d => { const f = V().fold[d.dataset.k]; d.open = f == null ? !d.hasAttribute('data-shut') : !+f; });
 }
 document.addEventListener('toggle', e => {
  const d = e.target; if (!d.matches || !d.matches('details.fd[data-k]')) return;
- if (d.open) delete V().fold[d.dataset.k]; else V().fold[d.dataset.k] = 1;
+ V().fold[d.dataset.k] = d.open ? 0 : 1;
  save();
  if (d.open && d.dataset.k === 'chart' && R) requestAnimationFrame(drawMain);
  if (d.open && d.dataset.k === 'saleTime' && R) requestAnimationFrame(() => drawSaleChart(rentS()));

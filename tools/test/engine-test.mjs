@@ -174,7 +174,7 @@ ok('逐月掃描：滿 6 年那個月起可用自住優惠', scan.length === 36 
 
 // ---------- 13. 設定檔轉換（舊版也能匯入）
 const d0 = E.norm({});
-ok('空資料補預設', d0.v === 3 && d0.loan.rateMode === 'single' && d0.view.rng === '10' && d0.view.from === 'disb' && d0.rent.breach === false);
+ok('空資料補預設', d0.v === 4 && d0.house.btype === '大樓' && d0.house.park === false && d0.view.mk.age === '5' && d0.view.mk.soc === true && d0.loan.rateMode === 'single' && d0.view.rng === '10' && d0.view.from === 'disb' && d0.rent.breach === false);
 const v1 = E.norm({ src: 'mine', mine: { v: 1, name: 'x', loan: { amt: 992, disb: '2023-10-21', rateMode: 'qingan', qa: { sub: 1.775 } }, stressBp: 50, rent: { qingan: true, breachRate: '' } }, ui: { tab: 'S' } });
 ok('v1 我的資料：搬出 mine、碼數轉百分比、qingan 不沿用', v1.loan.amt === 992 && v1.loan.rateMode === 'qingan' && v1.stressPct === 0.5 && v1.rent.breach === false && !('qingan' in v1.rent) && !('name' in v1) && v1.view.tab === 'L');
 const v2 = E.norm({ data: { v: 2, loan: { amt: 500 }, rent: { breach: true, newRate: 2.4 } } });
@@ -183,6 +183,8 @@ const v2u = E.norm({ loan: { amt: 1 }, ui: { tab: 'R', cv: 'pay', rng: 'all', pi
 ok('v2 localStorage 的 ui 搬進 view', v2u.view.tab === 'R' && v2u.view.cv === 'pay' && v2u.view.rng === 'all' && v2u.view.pin === 1 && v2u.view.open[2027] === 1);
 const bad = E.norm({ loan: { rateMode: 'xx', pre: 'x' }, view: { tab: 'Z', rng: 7 } });
 ok('不合法的值改回預設', bad.loan.rateMode === 'single' && Array.isArray(bad.loan.pre) && bad.view.tab === 'L' && bad.view.rng === '10');
+const v3 = E.norm({ v: 3, house: { city: 'b', dist: '南區', rooms: 3, ping: 31.9 }, view: { fold: { market: 1 }, mk: { age: '10' } } });
+ok('v3 → v4：房屋補完工年、型態、車位，保留原值與收合', v3.v === 4 && v3.house.rooms === 3 && v3.house.built === '' && v3.house.btype === '大樓' && v3.house.park === false && v3.view.fold.market === 1 && v3.view.mk.age === '10' && v3.view.mk.type === 'same');
 ok('norm 不改到原物件', (() => { const o = { loan: { amt: 1 } }; E.norm(o); return !o.view; })());
 
 // ---------- 14. 版本號：index.html 裡每個 js 的 ?v= 要一致（改版用 node tools/bump.mjs）
