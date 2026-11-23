@@ -12,7 +12,7 @@ function calcSale() {
  // 結論
  let v = `<b>${d.sale.replace(/-/g, '/')}</b> 以 <b>${w1(a.price)} 萬</b>賣出${S.sale.priceMode === 'fixed' ? '' : `（目前估 ${w1((+S.sale.est > 0 ? +S.sale.est : +S.house.price) * 1e4)} 萬、每年 ${+S.sale.growth || 0}%）`}：`;
  v += `一直自住，房地合一稅 <b>${w1(a.tax)} 萬</b>（${a.selfOK ? '可用自住優惠' : a.taxNote}），還完房貸實拿 <b>${w1(a.net)} 萬</b>。`;
- if (rentHit && a.net - b.net >= 1000) v += `如果照出租計畫從 ${ymTxt(rs)} 出租，稅變成 <b>${w1(b.tax)} 萬</b>、實拿 ${w1(b.net)} 萬，<b class="bad">少 ${w1(a.net - b.net)} 萬</b>。`;
+ if (rentHit && a.net - b.net >= 1000) v += `如果照出租計畫從 ${ymTxt(rs)} 出租，稅變成 <b>${w1(b.tax)} 萬</b>、實拿 ${w1(b.net)} 萬，<b class="dn">少 ${w1(a.net - b.net)} 萬</b>。`;
  else if (rentHit) v += `照出租計畫出租，這個時間點的稅和實拿差不多（${a.selfOK ? '' : '本來就還不能用自住優惠，'}差 ${w1(a.net - b.net)} 萬）。`;
  if (!a.selfOK && a.next) v += `<br><span class="h">再等到 ${a.next.replace(/-/g, '/')} 出售，稅率會再降一級。</span>`;
  $('saleRes').innerHTML = v;
@@ -20,14 +20,14 @@ function calcSale() {
  // 瀑布（選一直自住或出租後）
  const path = S.sale.path === 'rent' && rentHit ? 'rent' : 'self', x = path === 'rent' ? b : a;
  $('saleSeg').innerHTML = `<div class="seg"><button class="${path === 'self' ? 'on' : ''}" onclick="setSalePath('self')">一直自住</button><button class="${path === 'rent' ? 'on' : ''}" onclick="setSalePath('rent')"${rentHit ? '' : ' disabled title="出租計畫在出售日之後"'}>依出租計畫</button></div>`;
- const steps = [['售價', x.price, '#2563eb'], ['仲介與出售費用', -x.fee, '#94a3b8'], ['土地增值稅', -x.landTax, '#f59e0b'], ['房地合一稅', -x.tax, '#dc2626'], ['還清房貸', -x.loanBal, '#7c3aed']];
+ const steps = [['售價', x.price, 'c2'], ['仲介與出售費用', -x.fee, 'c8'], ['土地增值稅', -x.landTax, 'c3'], ['房地合一稅', -x.tax, 'c4'], ['還清房貸', -x.loanBal, 'c5']];
  const mx = Math.max(1, x.price);
  let cum = 0;
  $('saleWf').innerHTML = steps.map(([n, v2, c], i) => {
   const from = i ? cum + v2 : 0, to = i ? cum : v2; if (i) cum += v2; else cum = v2;
   const l = Math.min(from, to) / mx * 100, w = Math.abs(v2) / mx * 100;
-  return `<div class="wf"><span>${n}</span><span class="wft"><i style="left:${Math.max(0, l)}%;width:${Math.max(0.5, w)}%;background:${c}"></i></span><span class="wfv">${i ? (v2 ? '−' : '') : ''}${w1(Math.abs(v2))}</span></div>`;
- }).join('') + `<div class="wf tot"><span>實拿</span><span class="wft"><i style="left:0;width:${Math.max(0, x.net) / mx * 100}%;background:#16a34a"></i></span><span class="wfv ${x.net >= 0 ? 'ok' : 'bad'}">${w1(x.net)}</span></div><div class="h" style="text-align:right">單位：萬元</div>`;
+  return `<div class="wf"><span>${n}</span><span class="wft"><i style="left:${Math.max(0, l)}%;width:${Math.max(0.5, w)}%;background:${thV(c)}"></i></span><span class="wfv">${i ? (v2 ? '−' : '') : ''}${w1(Math.abs(v2))}</span></div>`;
+ }).join('') + `<div class="wf tot"><span>實拿</span><span class="wft"><i style="left:0;width:${Math.max(0, x.net) / mx * 100}%;background:var(--up)"></i></span><span class="wfv ${x.net >= 0 ? 'up' : 'dn'}">${w1(x.net)}</span></div><div class="h" style="text-align:right">單位：萬元</div>`;
 
  // 明細表（兩條路）
  const row = (t, f, cls = '') => `<tr class="${cls}"><td>${t}</td><td>${f(a)}</td><td>${rentHit ? f(b) : '—'}</td></tr>`;
@@ -44,14 +44,14 @@ function calcSale() {
  const B = POLICY.houseLand.brackets, start = d.buy, end = DT.addY(d.buy, 12), span = Date.parse(end) - Date.parse(start);
  const pos = s => Math.max(0, Math.min(100, (Date.parse(s) - Date.parse(start)) / span * 100));
  let prev = start, seg = '';
- const col = { 45: '#fecaca', 35: '#fed7aa', 20: '#fef08a', 15: '#bbf7d0' };
- for (const [y, r] of B) { const to = y === Infinity ? end : DT.addY(d.buy, y); seg += `<i style="left:${pos(prev)}%;width:${pos(to) - pos(prev)}%;background:${col[r]}">${r}%</i>`; prev = to; }
+ const col = r => `var(--b${r})`;
+ for (const [y, r] of B) { const to = y === Infinity ? end : DT.addY(d.buy, y); seg += `<i style="left:${pos(prev)}%;width:${pos(to) - pos(prev)}%;background:${col(r)}">${r}%</i>`; prev = to; }
  const selfAt = DT.addY(d.self, POLICY.houseLand.self.years);
  const today = `${NOW}-15`;
  $('saleBand').innerHTML = `<div class="band">${seg}<b class="sf" style="left:${pos(selfAt)}%;width:${100 - pos(selfAt)}%"></b>` +
   `<u style="left:${pos(today)}%" title="今天"></u><u class="sl" style="left:${pos(d.sale)}%" title="出售日"></u></div>
   <div class="bandl"><span>${start.slice(0, 7).replace('-', '/')} 取得</span><span>${end.slice(0, 4)}</span></div>
-  <div class="h">色塊是房地合一稅率；<span style="color:#16a34a">綠色框線</span>是可以用自住優惠的期間（${selfAt.replace(/-/g, '/')} 起，條件是出售前 6 年沒有出租）；│今天　<b style="color:#dc2626">│</b>出售日。</div>`;
+  <div class="h">色塊是房地合一稅率；<span style="color:var(--ok)">墨青色框線</span>是可以用自住優惠的期間（${selfAt.replace(/-/g, '/')} 起，條件是出售前 6 年沒有出租）；<b style="color:var(--pri)">│</b>今天　<b style="color:var(--c4)">│</b>出售日。</div>`;
 
  drawSaleChart(D);
 }
@@ -65,15 +65,15 @@ function drawSaleChart(D) {
   if (i < 0) { $('saleCvi').textContent = '按住圖表左右拖動，看每個月賣出的實拿與稅'; return; }
   const x = sc[i];
   $('saleCvi').innerHTML = `<b>${ymTxt(x.ym)}</b>｜一直自住：實拿 ${w1(x.self.net)} 萬、稅 ${w1(x.self.tax)} 萬${x.self.selfOK ? '（自住優惠）' : `（${x.self.rate}%）`}` +
-   (x.rent.rented ? `<span style="color:#dc2626">｜出租：實拿 ${w1(x.rent.net)} 萬、稅 ${w1(x.rent.tax)} 萬（${x.rent.rate}%）</span>` : '');
+   (x.rent.rented ? `<span style="color:var(--bad)">｜出租：實拿 ${w1(x.rent.net)} 萬、稅 ${w1(x.rent.tax)} 萬（${x.rent.rate}%）</span>` : '');
  };
- const ser = [{ name: '一直自住 實拿', color: '#16a34a', type: 'line', data: sc.map(x => x.self.net / 1e4) },
-  { name: '一直自住 稅', color: '#16a34a', type: 'step', axis: 'R', width: 1.5, dash: [2, 3], data: sc.map(x => x.self.tax / 1e4) }];
- if (hasRent) ser.push({ name: '出租 實拿', color: '#dc2626', type: 'line', dash: [5, 4], data: sc.map(x => x.rent.rented ? x.rent.net / 1e4 : null) },
-  { name: '出租 稅', color: '#dc2626', type: 'step', axis: 'R', width: 1.5, dash: [2, 3], data: sc.map(x => x.rent.rented ? x.rent.tax / 1e4 : null) });
+ const ser = [{ name: '一直自住 實拿', color: 'c1', type: 'line', data: sc.map(x => x.self.net / 1e4) },
+  { name: '一直自住 稅', color: 'c1', type: 'step', axis: 'R', width: 1.5, dash: [2, 3], data: sc.map(x => x.self.tax / 1e4) }];
+ if (hasRent) ser.push({ name: '出租 實拿', color: 'bad', type: 'line', dash: [5, 4], data: sc.map(x => x.rent.rented ? x.rent.net / 1e4 : null) },
+  { name: '出租 稅', color: 'bad', type: 'step', axis: 'R', width: 1.5, dash: [2, 3], data: sc.map(x => x.rent.rented ? x.rent.tax / 1e4 : null) });
  const si = sc.findIndex(x => x.ym === sale);
- drawChart(cv, { x: sc.map(x => x.ym), xl: s => s.slice(2, 4) + '/' + s.slice(5), series: ser, fmtL: v => v + '萬', fmtR: v => v + '萬', now: 0, marks: si >= 0 ? [{ i: si, color: '#dc2626' }] : [], onHover: info });
+ drawChart(cv, { x: sc.map(x => x.ym), xl: s => s.slice(2, 4) + '/' + s.slice(5), series: ser, fmtL: v => v + '萬', fmtR: v => v + '萬', now: 0, marks: si >= 0 ? [{ i: si, color: 'c4' }] : [], onHover: info });
  info(-1);
- $('saleLg').innerHTML = `<i style="background:#16a34a"></i>一直自住：實拿（左軸）<i style="background:repeating-linear-gradient(90deg,#16a34a 0 2px,transparent 2px 5px)"></i>稅（右軸）` +
-  (hasRent ? `<i style="background:repeating-linear-gradient(90deg,#dc2626 0 4px,transparent 4px 7px)"></i>依出租計畫` : '') + '<i style="background:#dc2626;height:8px;width:8px"></i>預計出售日';
+ $('saleLg').innerHTML = `<i style="background:var(--c1)"></i>一直自住：實拿（左軸）<i style="background:repeating-linear-gradient(90deg,var(--c1) 0 2px,transparent 2px 5px)"></i>稅（右軸）` +
+  (hasRent ? `<i style="background:repeating-linear-gradient(90deg,var(--bad) 0 4px,transparent 4px 7px)"></i>依出租計畫` : '') + '<i style="background:var(--c4);height:8px;width:8px"></i>預計出售日';
 }

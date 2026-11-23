@@ -2,6 +2,7 @@
 // drawChart(canvas, spec, hoverIndex)
 // spec = { x:[標籤], series:[{name, color, data:[數字|null], axis:'L'|'R', type:'line'|'step'|'area'|'bar', stack（長條或面積堆疊）, dash}],
 //          fmtL, fmtR, marks:[{i, color, label}], now:索引, onHover(i) }
+// 顏色可以是色碼或 CSS 變數名稱（例如 'c2'、'bad'），畫的時候用 thC() 換成目前主題的顏色，切換主題後重畫就會變色。
 // 每張圖各自記住目前的 spec、滑過的位置與版面（同一頁可以有好幾張圖）
 const chState = cv => cv._ch || (cv._ch = { spec: null, hover: -1, geo: null });
 
@@ -13,8 +14,9 @@ function niceRange(lo, hi, ticks = 4) {
  return { lo: Math.floor(lo / step) * step, hi: Math.ceil(hi / step) * step, step };
 }
 
-function drawChart(cv, spec, hi = -1) {
- const CH = chState(cv); CH.spec = spec; CH.hover = hi;
+function drawChart(cv, spec0, hi = -1) {
+ const CH = chState(cv); CH.spec = spec0; CH.hover = hi;
+ const spec = { ...spec0, series: spec0.series.map(s => ({ ...s, color: thC(s.color) })), marks: (spec0.marks || []).map(m => ({ ...m, color: thC(m.color || 'c5') })) };
  const dpr = window.devicePixelRatio || 1, rc = cv.getBoundingClientRect();
  if (!rc.width) return;
  cv.width = rc.width * dpr; cv.height = rc.height * dpr;
@@ -39,20 +41,21 @@ function drawChart(cv, spec, hi = -1) {
  const yL = v => pad.t + chh - (v - RL.lo) / (RL.hi - RL.lo) * chh;
  const yR = v => pad.t + chh - (v - RR.lo) / (RR.hi - RR.lo) * chh;
  // 格線與刻度
- c.strokeStyle = '#e2e8f0'; c.lineWidth = 1; c.fillStyle = '#94a3b8'; c.textAlign = 'right';
+ const gl = thC('line'), gt = thC('mut');
+ c.strokeStyle = gl; c.lineWidth = 1; c.fillStyle = gt; c.textAlign = 'right';
  for (let v = RL.lo; v <= RL.hi + 1e-9; v += RL.step) {
   const y = yL(v); c.beginPath(); c.moveTo(pad.l, y); c.lineTo(W - pad.r, y); c.stroke();
   c.fillText(spec.fmtL ? spec.fmtL(v) : String(v), pad.l - 4, y + 3);
  }
  if (RR) { c.textAlign = 'left'; for (let v = RR.lo; v <= RR.hi + 1e-9; v += RR.step) c.fillText(spec.fmtR ? spec.fmtR(v) : String(v), W - pad.r + 4, yR(v) + 3); }
  // x 標籤：大約 6 個
- c.textAlign = 'center'; c.fillStyle = '#94a3b8';
+ c.textAlign = 'center'; c.fillStyle = gt;
  const every = Math.max(1, Math.ceil(N / 6));
  for (let i = 0; i < N; i += every) c.fillText(spec.xl ? spec.xl(spec.x[i], i) : spec.x[i], Math.min(Math.max(xAt(i), pad.l + 14), W - pad.r - 14), H - 5);
  // 今天
  if (spec.now != null && spec.now >= 0 && spec.now < N) {
-  const x = xAt(spec.now); c.strokeStyle = '#0f766e'; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(x, pad.t); c.lineTo(x, pad.t + chh); c.stroke(); c.setLineDash([]);
-  c.fillStyle = '#0f766e'; c.textAlign = x > W - pad.r - 30 ? 'right' : 'left'; c.fillText('今天', x + (x > W - pad.r - 30 ? -3 : 3), pad.t + 9);
+  const x = xAt(spec.now), pc = thC('pri'); c.strokeStyle = pc; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(x, pad.t); c.lineTo(x, pad.t + chh); c.stroke(); c.setLineDash([]);
+  c.fillStyle = pc; c.textAlign = x > W - pad.r - 30 ? 'right' : 'left'; c.fillText('今天', x + (x > W - pad.r - 30 ? -3 : 3), pad.t + 9);
  }
  // 長條（可堆疊）
  if (isBar) {
@@ -100,12 +103,12 @@ function drawChart(cv, spec, hi = -1) {
  // 事件標記
  for (const m of spec.marks || []) {
   if (m.i < 0 || m.i >= N) continue;
-  const x = xAt(m.i); c.fillStyle = m.color || '#7c3aed';
+  const x = xAt(m.i); c.fillStyle = m.color;
   c.beginPath(); c.moveTo(x, pad.t + chh); c.lineTo(x - 5, pad.t + chh + 8); c.lineTo(x + 5, pad.t + chh + 8); c.closePath(); c.fill();
  }
  // 滑過的位置
  if (hi >= 0 && hi < N) {
-  const x = xAt(hi); c.strokeStyle = '#334155'; c.lineWidth = 1; c.beginPath(); c.moveTo(x, pad.t); c.lineTo(x, pad.t + chh); c.stroke();
+  const x = xAt(hi); c.strokeStyle = thC('tx2'); c.lineWidth = 1; c.beginPath(); c.moveTo(x, pad.t); c.lineTo(x, pad.t + chh); c.stroke();
   for (const s of spec.series.filter(s => s.type !== 'bar')) {
    let v = s.data[hi]; if (v == null) continue;
    if (s.type === 'area' && s.stack && atop[s.name]) v = atop[s.name][hi];
