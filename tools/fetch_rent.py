@@ -25,6 +25,7 @@ import statistics
 import sys
 import urllib.request
 import zipfile
+from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -40,6 +41,8 @@ COUNTIES = {
 WHOLE = ("整棟(戶)出租", "分層出租")
 TYPE_BUCKET = [("住宅大樓", "大樓"), ("華廈", "華廈"), ("公寓", "公寓"), ("透天", "透天"), ("套房", "套房")]
 SPECIAL = ("親友", "特殊關係", "員工")
+TARGET_OK = ("房屋", "建物", "房地")   # 交易標的：租賃資料多半寫「租賃房屋」，舊格式寫「房地(土地+建物)」
+STAGES = ["出租型態", "交易標的", "主要用途", "特殊關係", "期間", "房數", "租金", "行政區"]
 WINDOW = 12   # 月
 LAG = 2       # 月
 SEASONS = 5   # 最多試幾季（最新一季常常還沒發布）
@@ -119,33 +122,50 @@ def rental_rows(zbytes):
                 yield m.group(1), dict(zip(head, row))
 
 
-def clean(row, start, end):
-    """符合條件回傳 (行政區, 房數鍵, 型態, 月租, 每坪月租或 None)；否則 None。"""
+def clean(row, start, end, why=None):
+    """符合條件回傳 (行政區, 房數鍵, 型態, 月租, 每坪月租或 None)；否則 None。
+    why 是 Counter 時，記下被哪一關擋掉（方便看官方格式是否改了）。"""
+    def no(stage):
+        if why is not None:
+            why[stage] += 1
+        return None
     if row.get("出租型態", "").strip() not in WHOLE:
-        return None
-    if "建物" not in row.get("交易標的", "") and "房地" not in row.get("交易標的", ""):
-        return None
+        return no("出租型態")
+    if not any(k in row.get("交易標的", "") for k in TARGET_OK):
+        return no("交易標的")
     if "住" not in row.get("主要用途", ""):
-        return None
+        return no("主要用途")
     if any(k in row.get("備註", "") for k in SPECIAL):
-        return None
+        return no("特殊關係")
     ym = roc_month(row.get("租賃年月日"))
     if not ym or not (start <= ym <= end):
-        return None
+        return no("期間")
     rooms = int(num(row.get("建物現況格局-房")))
     if rooms <= 0:
-        return None
+        return no("房數")
     rent = num(row.get("總額元")) - num(row.get("車位總額元"))
     if not 1000 <= rent <= 1_000_000:
-        return None
+        return no("租金")
     dist = row.get("鄉鎮市區", "").strip()
     if not dist:
-        return None
+        return no("行政區")
     t = row.get("建物型態", "")
     tb = next((b for k, b in TYPE_BUCKET if k in t), "其他")
     area = num(row.get("建物總面積平方公尺")) - num(row.get("車位面積平方公尺"))
     per = rent / (area / PING) if area >= 10 else None
     return dist, str(min(rooms, 4)), tb, rent, per
+
+
+def report(total, why, seen_vals):
+    """印出每一關擋掉幾筆，以及幾個關鍵欄位實際出現的值。"""
+    print(f"讀到 {total} 筆租約，篩選情況：")
+    left = total
+    for st in STAGES:
+        left -= why[st]
+        print(f"  {st}：擋掉 {why[st]}，剩 {left}")
+    for k, c in seen_vals.items():
+        top = "、".join(f"{v or '(空白)'}×{n}" for v, n in c.most_common(8))
+        print(f"  「{k}」常見值：{top}")
 
 
 def stats(vals, pers):
@@ -164,13 +184,18 @@ def build(zips, today):
     end = month_add(today.year, today.month, -LAG)
     start = month_add(*end, -(WINDOW - 1))
     seen, data = set(), {}
+    why, total = Counter(), 0
+    seen_vals = {k: Counter() for k in ("出租型態", "交易標的", "主要用途")}
     for z in zips:
         for code, row in rental_rows(z):
             sid = row.get("編號", "").strip()
             if sid and sid in seen:
                 continue
             seen.add(sid)
-            r = clean(row, start, end)
+            total += 1
+            for k, c in seen_vals.items():
+                c[row.get(k, "").strip()] += 1
+            r = clean(row, start, end, why)
             if not r:
                 continue
             dist, rk, tb, rent, per = r
@@ -178,8 +203,9 @@ def build(zips, today):
             for bucket in (d["all"], d["rooms"].setdefault(rk, ([], [])), d["type"].setdefault(tb, ([], []))):
                 bucket[0].append(rent)
                 bucket[1].append(per)
+    report(total, why, seen_vals)
     if not data:
-        raise RuntimeError("篩選後沒有任何租約，下載網址或欄位可能已變更")
+        raise RuntimeError("篩選後沒有任何租約，官方欄位的寫法可能改了，請看上面各關擋掉的筆數與常見值")
     out = {}
     for code, dists in data.items():
         out[code] = {
