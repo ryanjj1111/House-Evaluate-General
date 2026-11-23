@@ -33,7 +33,11 @@
 | `tools/fetch_rent.py` | 下載並整理實價登錄租賃資料（Actions：更新租金行情，每月 6 日） |
 | `tools/test/rent_data_test.py` | 租金整理的測試（虛構 CSV） |
 | `js/tip.js` | ⓘ 說明小視窗（沿用投資帳本） |
+| `js/theme.js` | 亮色／暗色主題（記在這台裝置，不進設定檔） |
+| `js/icons.js` | 線條圖示：顯示時把 emoji 換成 Lucide SVG |
 | `tools/test/engine-test.mjs` | 測試：`node tools/test/engine-test.mjs` |
 | `tools/bump.mjs` | 改版時更新 js 版本號：`node tools/bump.mjs` |
+
+介面設計參考 [unslop](https://github.com/heydamir/unslop)（Damir Sokolovsky，CC BY 4.0）；圖示來自 [Lucide](https://lucide.dev)（ISC，授權全文 `js/icons-LICENSE.txt`）。
 
 本工具僅供試算，非貸款、稅務或投資建議；實際以銀行與主管機關為準。

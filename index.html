@@ -105,6 +105,33 @@ input.bad,input:invalid{border-color:var(--bad);background:var(--badbg)}
 .rbt i{position:absolute;top:0;bottom:0;border-radius:7px}.rbt i.pos{background:var(--up)}.rbt i.neg{background:var(--dn)}.rbv{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .rt td,.rt th{font-size:12px;padding:4px 5px}.rt td:first-child,.rt th:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}.rt th:first-child{background:var(--soft2)}
 .rt .sel{background:var(--pris)}.rt th.sel{background:var(--prib)}.rt tr.tot td{border-top:1px solid var(--line2)}.rt tr.mut td{color:var(--mut);font-size:11px}
+/* ===== 介面改版 PR 3（比照投資帳本第三批）：4px 間距、圓角三級、少用陰影、少量動效 ===== */
+:root{--r1:6px;--r2:8px;--r3:12px}
+a{color:var(--pri)}
+body{padding:12px}
+.p{border-radius:var(--r3);padding:12px;margin-bottom:12px;box-shadow:none;border:1px solid var(--line)}
+.c{border-radius:10px;padding:8px}
+.cd,.g,.g3{gap:8px}.tabs{gap:8px;margin-bottom:12px}
+input,select,button{border-radius:var(--r2)}
+input,select{padding:6px}
+button{padding:6px 10px;transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s}
+.row button,.tabs button{padding-left:2px;padding-right:2px}.icb{padding:0}
+@media(hover:hover){button:not(:disabled):hover{border-color:var(--mut)}button.on:hover,button.pri:hover{filter:brightness(1.06)}}
+button:not(:disabled):active{transform:translateY(1px)}
+:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+input:focus,select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pris)}
+.seg button{padding:4px 9px}.seg button:first-child{border-radius:var(--r2) 0 0 var(--r2)}.seg button:last-child{border-radius:0 var(--r2) var(--r2) 0}
+.tabs button{border-radius:var(--r2)}
+.hl,.verdict{border-radius:10px}.hl{padding:8px 10px}
+#chp.pin{box-shadow:0 4px 12px var(--shd)}
+.md>div,.tipbx{border-radius:var(--r3)}
+/* 動效：視窗淡入上移、提示條滑入；系統要求減少動態時全部關掉 */
+.md{animation:thFade .15s ease-out}.md>div,.tipbx{animation:thUp .18s ease-out}
+details>summary{transition:color .15s}
+@keyframes thFade{from{opacity:0}to{opacity:1}}
+@keyframes thUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#toast{animation:thToast .2s ease-out}@keyframes thToast{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style></head><body>
 
 <div class="hdr"><h2>🏠 房屋試算 <small>房貸・出租・出售</small></h2><div class="hbt"><button id="thB" class="icb" onclick="thTog()" title="切換亮色／暗色"></button><button onclick="showGd()" style="font-size:12px;padding:4px 8px">📖 使用說明</button></div></div>
@@ -266,24 +293,25 @@ input.bad,input:invalid{border-color:var(--bad);background:var(--badbg)}
 <li><b>租金標準</b>：財政部公告的當地一般租金標準；一般出租申報租金達標才能用較低的房屋稅率。</li>
 <li><b>邊際稅率</b>：綜合所得稅你所在的最高一級稅率，租賃所得會用這個稅率多繳稅。</li></ul>
 <div class="h" style="margin-top:6px">限制：利率、稅率依目前規定與你輸入的數字推算，不代表未來；稅務以國稅局、地方稅務局核定為準；新青安條件以承貸銀行與切結書為準。</div></details>
+<div class="h" style="margin-top:8px">介面設計參考 <a href="https://github.com/heydamir/unslop" target="_blank" rel="noopener">unslop</a>（Damir Sokolovsky，CC BY 4.0）；圖示來自 <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a>（ISC 授權）。右上角的月亮／太陽按鈕可以切換亮色、暗色，只記在這台裝置。</div>
 
 <label style="margin-top:8px;flex-direction:row;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="gdn" style="width:auto">下次開啟不再自動顯示</label>
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/theme.js?v=202611230909"></script>
-<script src="js/icons.js?v=202611230909"></script>
-<script src="js/tip.js?v=202611230909"></script>
-<script src="js/policy.js?v=202611230909"></script>
-<script src="js/state.js?v=202611230909"></script>
-<script src="js/fields.js?v=202611230909"></script>
-<script src="js/engine.js?v=202611230909"></script>
-<script src="js/charts.js?v=202611230909"></script>
-<script src="js/ui-core.js?v=202611230909"></script>
-<script src="js/ui-loan.js?v=202611230909"></script>
-<script src="js/ui-rent.js?v=202611230909"></script>
-<script src="js/ui-market.js?v=202611230909"></script>
-<script src="js/ui-sale.js?v=202611230909"></script>
-<script src="js/ui-chart.js?v=202611230909"></script>
-<script src="js/main.js?v=202611230909"></script>
+<script src="js/theme.js?v=202611230915"></script>
+<script src="js/icons.js?v=202611230915"></script>
+<script src="js/tip.js?v=202611230915"></script>
+<script src="js/policy.js?v=202611230915"></script>
+<script src="js/state.js?v=202611230915"></script>
+<script src="js/fields.js?v=202611230915"></script>
+<script src="js/engine.js?v=202611230915"></script>
+<script src="js/charts.js?v=202611230915"></script>
+<script src="js/ui-core.js?v=202611230915"></script>
+<script src="js/ui-loan.js?v=202611230915"></script>
+<script src="js/ui-rent.js?v=202611230915"></script>
+<script src="js/ui-market.js?v=202611230915"></script>
+<script src="js/ui-sale.js?v=202611230915"></script>
+<script src="js/ui-chart.js?v=202611230915"></script>
+<script src="js/main.js?v=202611230915"></script>
 </body></html>
