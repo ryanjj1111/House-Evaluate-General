@@ -1,5 +1,5 @@
 // 加入主畫面用：網路優先，離線時用上次存的版本（只處理本網站的檔案）
-const C='hc-app-v1';
+const C='hc-app-v2';
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(K=>Promise.all(K.filter(k=>k!=C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{const r=e.request;if(r.method!='GET'||new URL(r.url).origin!=location.origin)return;

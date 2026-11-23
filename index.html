@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f3f5f4"><script>/* 主題先套上，避免閃一下：記在這台裝置（hcth），沒選過就跟手機設定 */try{var t=localStorage.getItem("hcth");if(t!="dark"&&t!="light")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t;if(t=="dark")document.querySelector("meta[name=theme-color]").content="#0c1211"}catch(e){}</script><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/icon-192.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="房屋試算">
+<html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f3f5f4"><script>/* 主題先套上，避免閃一下：記在這台裝置（hcth），沒選過就跟手機設定 */try{var t=localStorage.getItem("hcth");if(t!="dark"&&t!="light")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t;if(t=="dark")document.querySelector("meta[name=theme-color]").content="#0c1211"}catch(e){}</script><link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/svg+xml" href="icons/icon.svg"><link rel="icon" type="image/png" href="icons/icon-192.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="房屋試算">
 <title>房屋試算｜房貸・出租・出售</title>
 <style>
 /* 介面改版 PR 1：墨青配色（比照投資帳本）。顏色都用變數，亮色／暗色兩組（data-theme）。
@@ -30,6 +30,11 @@
 --b45:#4a2622;--b35:#46301a;--b20:#3b3416;--b15:#173a35;
 --shd:rgba(0,0,0,.35);--ovl:rgba(0,0,0,.6)}
 b,strong,th{font-weight:600}
+/* 線條圖示（js/icons.js，Lucide ISC）：顯示時把 emoji 換成跟文字同色的 SVG */
+.i{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.22em;flex:none}.i-tick{width:1.2em;height:1.2em}
+.i-ok{color:var(--ok)}.i-bad{color:var(--bad)}.i-wn{color:var(--warn)}.i-mut{color:var(--mut)}.i-dn{color:var(--dn)}
+summary .i,h2 .i,.tabs .i{color:var(--pri)}.tabs button.on .i{color:inherit}h2 .i{width:1.05em;height:1.05em}
+#pinB .i,#gearB .i{width:16px;height:16px;vertical-align:-3px}
 table,.c b,.wfv,.rbv,#cvi,.cvi{font-variant-numeric:tabular-nums}
 *{box-sizing:border-box;font-family:-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
 body{margin:0 auto;padding:10px;background:var(--bg);color:var(--tx);font-size:13px;max-width:780px}
@@ -266,18 +271,19 @@ input.bad,input:invalid{border-color:var(--bad);background:var(--badbg)}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/theme.js?v=202611230907"></script>
-<script src="js/tip.js?v=202611230907"></script>
-<script src="js/policy.js?v=202611230907"></script>
-<script src="js/state.js?v=202611230907"></script>
-<script src="js/fields.js?v=202611230907"></script>
-<script src="js/engine.js?v=202611230907"></script>
-<script src="js/charts.js?v=202611230907"></script>
-<script src="js/ui-core.js?v=202611230907"></script>
-<script src="js/ui-loan.js?v=202611230907"></script>
-<script src="js/ui-rent.js?v=202611230907"></script>
-<script src="js/ui-market.js?v=202611230907"></script>
-<script src="js/ui-sale.js?v=202611230907"></script>
-<script src="js/ui-chart.js?v=202611230907"></script>
-<script src="js/main.js?v=202611230907"></script>
+<script src="js/theme.js?v=202611230909"></script>
+<script src="js/icons.js?v=202611230909"></script>
+<script src="js/tip.js?v=202611230909"></script>
+<script src="js/policy.js?v=202611230909"></script>
+<script src="js/state.js?v=202611230909"></script>
+<script src="js/fields.js?v=202611230909"></script>
+<script src="js/engine.js?v=202611230909"></script>
+<script src="js/charts.js?v=202611230909"></script>
+<script src="js/ui-core.js?v=202611230909"></script>
+<script src="js/ui-loan.js?v=202611230909"></script>
+<script src="js/ui-rent.js?v=202611230909"></script>
+<script src="js/ui-market.js?v=202611230909"></script>
+<script src="js/ui-sale.js?v=202611230909"></script>
+<script src="js/ui-chart.js?v=202611230909"></script>
+<script src="js/main.js?v=202611230909"></script>
 </body></html>
