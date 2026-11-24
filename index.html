@@ -152,7 +152,7 @@ details>summary{transition:color .15s}
  <div id="alerts"></div>
 </details>
 
-<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="R" onclick="tab('R')">🔑 出租</button><button data-t="X" onclick="tab('X')">💸 出售</button><button data-t="Y" onclick="tab('Y')">📅 明細</button></div>
+<div class="tabs"><button data-t="L" onclick="tab('L')">💰 房貸</button><button data-t="R" onclick="tab('R')">🔑 出租</button><button data-t="X" onclick="tab('X')">💸 出售</button></div>
 
 <div class="pg" id="pgL">
  <details class="p fd" data-k="loan" open><summary class="fs"><b>🏦 貸款條件</b><span class="ib" role="button" tabindex="0" data-tn="貸款條件" data-tt="依銀行的貸款契約或撥款通知填寫。&#10;寬限期：只繳利息、不還本金的期數。&#10;「首次本息月／本息期數」通常不用填；如果銀行的實際扣款和這裡算的差一個月，再到「進階」修正。">ⓘ</span></summary>
@@ -163,6 +163,8 @@ details>summary{transition:color .15s}
   <div id="preIn"></div><div id="preOut"></div></details>
  <details class="p fd" data-k="stress" open><summary class="fs"><b>🌡️ 升息壓力測試</b><span class="ib" role="button" tabindex="0" data-tn="升息壓力測試" data-tt="假設從這個月起利率再加幾碼（1 碼＝0.25%），月付和未來總利息會增加多少。房貸大多是機動利率，央行升息時會跟著調整。">ⓘ</span></summary>
   <div id="stIn"></div><div class="w"><table class="st" id="stT"></table></div></details>
+ <details class="p fd" data-k="table" open><summary class="fs"><b>📅 還款明細</b><span class="ib" role="button" tabindex="0" data-tn="還款明細" data-tt="點一年可以展開每個月的月付、利息、本金。底色標出來的是今年。&#10;年度金額單位為萬元，月份明細為元。">ⓘ</span></summary>
+  <div class="w"><table id="yt"></table></div></details>
 </div>
 
 <div class="pg" id="pgR">
@@ -195,10 +197,6 @@ details>summary{transition:color .15s}
   <div id="saleIn"></div></details>
 </div>
 
-<div class="pg" id="pgY">
- <details class="p fd" data-k="table" open><summary class="fs"><b>📅 還款明細</b><span class="ib" role="button" tabindex="0" data-tn="還款明細" data-tt="點一年可以展開每個月的月付、利息、本金。底色標出來的是今年。&#10;年度金額單位為萬元，月份明細為元。">ⓘ</span></summary>
-  <div class="w"><table id="yt"></table></div></details>
-</div>
 
 <details class="p fd" data-k="data" open><summary class="fs"><b>💾 資料</b></summary>
   <div style="display:flex;gap:6px;flex-wrap:wrap"><button onclick="expJson()">⬇️ 匯出設定檔</button><label style="flex-direction:row;align-items:center;gap:4px;font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:4px 8px;background:var(--soft2);cursor:pointer;color:var(--tx)">⬆️ 匯入 JSON<input type="file" accept=".json,application/json" onchange="impJson(this)" style="display:none"></label><button onclick="showGd()">📖 使用說明</button><button onclick="resetD()">↺ 重置</button></div>
@@ -208,10 +206,10 @@ details>summary{transition:color .15s}
 <div class="md" id="gd" onclick="if(event.target===this)closeGd()"><div>
 <h2 style="text-align:left;margin:0">📖 使用說明</h2>
 <div class="h" style="margin:4px 0 6px">點目錄跳到想看的段落；每一段都可以收合。</div>
-<div class="chips"><button onclick="gdGo('g1')">🚀 開始使用</button><button onclick="gdGo('g2')">💰 房貸</button><button onclick="gdGo('g3')">🔑 出租</button><button onclick="gdGo('g8')">💸 出售</button><button onclick="gdGo('g4')">📅 明細</button><button onclick="gdGo('g5')">📐 公式與規則</button><button onclick="gdGo('g6')">💾 資料與備份</button><button onclick="gdGo('g7')">📚 名詞</button></div>
+<div class="chips"><button onclick="gdGo('g1')">🚀 開始使用</button><button onclick="gdGo('g2')">💰 房貸</button><button onclick="gdGo('g3')">🔑 出租</button><button onclick="gdGo('g8')">💸 出售</button><button onclick="gdGo('g4')">📅 還款明細</button><button onclick="gdGo('g5')">📐 公式與規則</button><button onclick="gdGo('g6')">💾 資料與備份</button><button onclick="gdGo('g7')">📚 名詞</button></div>
 
 <details class="gds" id="g1" open><summary>🚀 開始使用</summary>
-<ul><li>最上方是<b>圖表與重點卡</b>，每個區塊點標題都可以收合（會記住）。下面有三個頁面：<b>💰 房貸</b>（貸款條件、利率、提前還款、升息壓力）、<b>🔑 出租</b>（出租 vs 自住）、<b>📅 明細</b>（逐年、逐月還款）。</li>
+<ul><li>最上方是<b>圖表與重點卡</b>，每個區塊點標題都可以收合（會記住）。下面有三個頁面：<b>💰 房貸</b>（貸款條件、利率、提前還款、升息壓力、最下面是逐年逐月的還款明細）、<b>🔑 出租</b>（出租 vs 自住、轉貸、租金行情）、<b>💸 出售</b>（房地合一稅、出售時點）。</li>
 <li><b>已經有設定檔</b>：到頁面最下方按「⬆️ 匯入 JSON」。</li>
 <li><b>第一次使用</b>：到 💰 房貸填貸款金額、撥款日、年限、寬限期和利率；有新青安就選「新青安」。想試算出租，再到 🔑 出租填管理費、房屋稅、地價稅和出租條件。</li>
 <li><b>加入主畫面</b>：Android（Chrome）右上「⋮」→「安裝」或「加入主畫面」。iPhone（Safari）下方「分享」→「加入主畫面」；主畫面 App 和 Safari 是分開的儲存空間，要先在 Safari 匯出、再到主畫面 App 匯入。</li></ul></details>
@@ -242,8 +240,8 @@ details>summary{transition:color .15s}
 <li><b>📋 房地合一稅明細</b>：課稅所得怎麼算、持有幾年、適用稅率或自住優惠；不能用自住優惠時會寫出原因。</li>
 <li><b>🗓️ 出售時點</b>：色帶是持有期間的稅率，墨青色框線是可以用自住優惠的期間；圖表是每個月賣出的實拿和稅，看哪個時間點賣最划算。</li></ul></details>
 
-<details class="gds" id="g4"><summary>📅 明細</summary>
-<ul><li>每年一列：期數、利率、月付範圍、本金、利息、提前還款、年底餘額（萬元）。點一年可以展開每個月（元）。底色標出來的是今年。</li></ul></details>
+<details class="gds" id="g4"><summary>📅 還款明細</summary>
+<ul><li>在 💰 房貸頁最下面（升息壓力測試下方）。每年一列：期數、利率、月付範圍、本金、利息、提前還款、年底餘額（萬元）。點一年可以展開每個月（元）。底色標出來的是今年。</li></ul></details>
 
 <details class="gds" id="g5"><summary>📐 公式與規則</summary><div class="fm">
   <h3>每月月付（本息均攤）</h3>
@@ -300,19 +298,19 @@ details>summary{transition:color .15s}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/theme.js?v=202611231729"></script>
-<script src="js/icons.js?v=202611231729"></script>
-<script src="js/tip.js?v=202611231729"></script>
-<script src="js/policy.js?v=202611231729"></script>
-<script src="js/state.js?v=202611231729"></script>
-<script src="js/fields.js?v=202611231729"></script>
-<script src="js/engine.js?v=202611231729"></script>
-<script src="js/charts.js?v=202611231729"></script>
-<script src="js/ui-core.js?v=202611231729"></script>
-<script src="js/ui-loan.js?v=202611231729"></script>
-<script src="js/ui-rent.js?v=202611231729"></script>
-<script src="js/ui-market.js?v=202611231729"></script>
-<script src="js/ui-sale.js?v=202611231729"></script>
-<script src="js/ui-chart.js?v=202611231729"></script>
-<script src="js/main.js?v=202611231729"></script>
+<script src="js/theme.js?v=202611241848"></script>
+<script src="js/icons.js?v=202611241848"></script>
+<script src="js/tip.js?v=202611241848"></script>
+<script src="js/policy.js?v=202611241848"></script>
+<script src="js/state.js?v=202611241848"></script>
+<script src="js/fields.js?v=202611241848"></script>
+<script src="js/engine.js?v=202611241848"></script>
+<script src="js/charts.js?v=202611241848"></script>
+<script src="js/ui-core.js?v=202611241848"></script>
+<script src="js/ui-loan.js?v=202611241848"></script>
+<script src="js/ui-rent.js?v=202611241848"></script>
+<script src="js/ui-market.js?v=202611241848"></script>
+<script src="js/ui-sale.js?v=202611241848"></script>
+<script src="js/ui-chart.js?v=202611241848"></script>
+<script src="js/main.js?v=202611241848"></script>
 </body></html>
