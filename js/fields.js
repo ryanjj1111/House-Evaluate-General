@@ -57,7 +57,7 @@ const FIELDS = {
  'sale.date': { l: '預計出售日', t: 'date', tip: '所有權移轉登記日。留空用「自住滿 6 年的隔天」。' },
  'sale.priceMode': { l: '售價怎麼算', t: 'sel', rb: 1, o: [['growth', '目前估價 × 每年成長'], ['fixed', '直接填售價']] },
  'sale.est': { l: '目前估價（萬元）', step: 1, min: 0, max: 1000000, ph: '留空＝取得價', tip: '今天大概能賣多少，可以問房仲或看實價登錄。' },
- 'sale.growth': { l: '房價每年成長（%）', step: 0.5, min: -20, max: 20 },
+ 'sale.growth': { l: '房價每年成長（%）', step: 0.1, min: -20, max: 20 },
  'sale.price': { l: '售價（萬元）', step: 1, min: 0, max: 1000000 },
  'sale.brokerPct': { l: '賣方仲介費（%）', step: 0.5, min: 0, max: 6, tip: '法定上限 4%，實際常議價到 1%～2%。' },
  'sale.other': { l: '其他出售費用（元）', step: 1000, min: 0, max: 10000000, tip: '代書費、塗銷規費等。' },
