@@ -186,6 +186,8 @@ ok('不合法的值改回預設', bad.loan.rateMode === 'single' && Array.isArra
 const v3 = E.norm({ v: 3, house: { city: 'b', dist: '南區', rooms: 3, ping: 31.9 }, view: { fold: { market: 1 }, mk: { age: '10' } } });
 ok('v3 → v4：房屋補完工年、型態、車位，保留原值與收合', v3.v === 4 && v3.house.rooms === 3 && v3.house.built === '' && v3.house.btype === '大樓' && v3.house.park === false && v3.view.fold.market === 1 && v3.view.mk.age === '10' && v3.view.mk.type === 'same');
 ok('舊的明細分頁（Y）改回房貸頁', E.norm({ view: { tab: 'Y' } }).view.tab === 'L' && E.norm({ view: { tab: 'X' } }).view.tab === 'X');
+ok('社區實價預設：含車位、不篩、不算 1 樓；房屋多車位坪數與車位價', (d => d.view.cm.mode === 'all' && d.view.cm.rooms.length === 0 && d.view.cm.no1 === true && d.house.carPing === '' && d.house.carPrice === '' && d.house.comm === null)(E.norm({})));
+ok('社區實價設定保留', E.norm({ view: { cm: { mode: 'ex', rooms: [2] } } }).view.cm.rooms[0] === 2 && E.norm({ view: { cm: { mode: 'ex' } } }).view.cm.sort === 'ym');
 ok('norm 不改到原物件', (() => { const o = { loan: { amt: 1 } }; E.norm(o); return !o.view; })());
 
 // ---------- 14. 版本號：index.html 裡每個 js 的 ?v= 要一致（改版用 node tools/bump.mjs）
