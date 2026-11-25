@@ -50,6 +50,7 @@ ok("門牌：數字段改國字、巷弄", S.parse_addr("中山路2段566巷2-7�
 ok("門牌：大道", S.parse_addr("臺中市西屯區台灣大道四段７６１號") == ("西屯區", "台灣大道四段", 761), S.parse_addr("臺中市西屯區台灣大道四段７６１號"))
 ok("門牌：村里鄰", S.parse_addr("新市區新和里10鄰忠孝街90巷35弄2號等") == ("新市區", "忠孝街90巷35弄", 2), S.parse_addr("新市區新和里10鄰忠孝街90巷35弄2號等"))
 ok("門牌：地號不算", S.parse_addr("文德段456地號") is None)
+ok("門牌號與樓之幾", [S.door(x) for x in ("臺中市南區福田二街１８０之２號十二樓之３", "福田二街180號五樓", "長榮路五段41巷9號八樓之3", "文德段456地號")] == [("180之2", 3), ("180", 0), ("9", 3), ("", 0)], [S.door(x) for x in ("臺中市南區福田二街１８０之２號十二樓之３", "福田二街180號五樓", "長榮路五段41巷9號八樓之3", "文德段456地號")])
 ok("樓層", [S.floor_num(x) for x in ("十二層", "十五層", "三十二層", "全", "", "地下一層", "12樓")] == [12, 15, 32, 0, 0, 0, 12])
 ok("社區名稱整理", [S.clean_name(x) for x in ("%允將海安管理委員會%", "江南藝術園林管委會", "好吉第*", "宏美社區")] == ["允將海安", "江南藝術園林", "好吉第", "宏美社區"])
 ok("完工日", S.built_day("1060315") == 20170315 and S.built_day("0680207") == 19790207 and S.built_day("") == 0)
@@ -60,7 +61,7 @@ with tempfile.TemporaryDirectory() as td:
     A = "臺中市南區福田二街{}號{}"
     b_rows = [
         row("南區", A.format("１８０", "十二樓"), "1150801", 13_500_000, area=140.0, car=1_500_000, car_area=35.0, target="房地(土地+建物)+車位", pens="土地1建物1車位1"),
-        row("南區", A.format("１８２", "五樓"), "1150301", 10_600_000, area=84.0),
+        row("南區", "臺中市南區福田二街１８２號五樓之２", "1150301", 10_600_000, area=84.0),
         row("南區", A.format("１８６", "九樓"), "1141101", 12_000_000, area=135.0, car=0, car_area=35.0, target="房地(土地+建物)+車位", pens="土地1建物1車位1"),
         row("南區", A.format("１８０", "一樓"), "1131201", 9_000_000, area=120.0, floor="一層"),
         row("南區", A.format("１８０", "七樓"), "1150901", 8_000_000, note="親友、員工、共有人或其他特殊關係間之交易"),   # 排除
@@ -91,7 +92,9 @@ with tempfile.TemporaryDirectory() as td:
     ok("公寓也收", ("南區", "忠孝路66巷", 19860101, 5) in bc, list(bc))
     ok("透天、土地不收", len(clusters["b"]) == 3, list(bc))
     r0 = next(r for r in home["rows"] if r["no"] == 180 and r["floor"] == 12)
-    ok("金額千元、坪數扣車位、車位數", r0["price"] == 13500 and r0["car"] == 1500 and r0["carN"] == 1 and abs(r0["ping"] - 31.8) < .1, r0)
+    ok("金額千元、總坪數、車位坪數、車位數", r0["price"] == 13500 and r0["car"] == 1500 and r0["carN"] == 1 and abs(r0["ping"] - 42.35) < .01 and abs(r0["carPing"] - 10.59) < .01, r0)
+    r3 = next(r for r in home["rows"] if r["no"] == 182)
+    ok("門牌字串與樓之幾", r0["noS"] == "180" and r0["unit"] == 0 and r3["noS"] == "182" and r3["unit"] == 2, (r0["noS"], r3["noS"], r3["unit"]))
     ok("增建標記", any(r["flags"] & S.F_ADD for r in home["rows"]))
 
     # 臺南名冊對名稱
@@ -108,6 +111,7 @@ with tempfile.TemporaryDirectory() as td:
     out = td / "out"
     S.write(out, clusters, frm, "2026-09", names, today)
     idx = json.loads((out / "index.json").read_text(encoding="utf-8"))
+    ok("index：資料版本", idx["v"] == 2)
     ok("index：欄位、縣市", idx["rowCols"] == S.ROW_COLS and idx["clusterCols"] == S.CLUSTER_COLS and set(idx["counties"]) == {"b", "d"}, idx)
     ok("index：名稱模式", idx["counties"]["b"]["nameMode"] == "pick" and idx["counties"]["d"]["nameMode"] == "match")
     f = json.loads((out / "b" / "南區.json").read_text(encoding="utf-8"))

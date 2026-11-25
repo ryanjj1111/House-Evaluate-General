@@ -42,7 +42,8 @@ EXCLUDE = ("親友", "員工", "共有人", "特殊關係", "債權債務", "債
            "法院", "拍賣", "地上權", "瑕疵", "凶宅", "急買急賣", "畸零地", "合建")
 F_ADD, F_FURN, F_PRESALE = 1, 2, 4     # 標記：有增建／頂加／外推、含家具、預售屋或分件登記
 CLUSTER_COLS = ["street", "built", "floors", "type", "name", "nmin", "nmax"]
-ROW_COLS = ["c", "ym", "no", "floor", "rooms", "ping", "price", "car", "carN", "flags"]
+ROW_COLS = ["c", "ym", "no", "floor", "unit", "rooms", "ping", "carPing", "price", "car", "carN", "flags"]
+DATA_V = 2   # 2：門牌保留「之幾」、樓層之幾（unit）；ping 改成總坪數（含車位），另存車位坪數
 TC_REG_URL = "https://newdatacenter.taichung.gov.tw/api/v1/no-auth/resource.download?rid=3ea99d8b-494f-4e16-884e-50f5a82aff36"
 TN_REG_DATASET = 120168
 FW = str.maketrans("０１２３４５６７８９－（）", "0123456789-()")
@@ -71,6 +72,14 @@ def parse_addr(a, dist=""):
     if not m or not m.group(1):
         return None
     return dist, m.group(1), int(m.group(2))
+
+
+def door(a):
+    """門牌的號與樓之幾：'福田二街１８０之２號十二樓之３' → ('180之2', 3)；看不懂回 ('', 0)。"""
+    a = norm_addr(a)
+    m = re.search(r"(\d+(?:之\d+)?)號", a)
+    u = re.search(r"[樓層]之(\d+)", a[m.end():] if m else "")
+    return (m.group(1) if m else ""), (int(u.group(1)) if u else 0)
 
 
 def floor_num(s):
@@ -134,7 +143,9 @@ def clean(row, start, why=None):
         return no("完工或樓層")
     price = FR.num(row.get("總價元"))
     car = FR.num(row.get("車位總價元"))
-    area = FR.num(row.get("建物移轉總面積平方公尺")) - FR.num(row.get("車位移轉總面積平方公尺"))
+    total = FR.num(row.get("建物移轉總面積平方公尺"))
+    car_area = FR.num(row.get("車位移轉總面積平方公尺"))
+    area = total - car_area
     if price < 300_000 or area < 10:
         return no("金額或面積")
     m = re.search(r"車位(\d+)", row.get("交易筆棟數", ""))
@@ -142,9 +153,10 @@ def clean(row, start, why=None):
     flags = ((F_ADD if any(k in note for k in ("增建", "頂樓加蓋", "外推")) else 0)
              | (F_FURN if "傢俱" in note or "家具" in note else 0)
              | (F_PRESALE if "預售屋" in note else 0))
-    return {"dist": p[0], "street": p[1], "no": p[2], "built": built, "floors": floors, "type": ti,
+    no_s, unit = door(row.get("土地位置建物門牌", ""))
+    return {"dist": p[0], "street": p[1], "no": p[2], "noS": no_s or str(p[2]), "unit": unit, "built": built, "floors": floors, "type": ti,
             "ym": ym[0] * 100 + ym[1], "floor": floor_num(row.get("移轉層次")), "rooms": min(rooms, 9),
-            "ping": round(area / PING, 1), "price": round(price / 1000), "car": round(car / 1000), "carN": car_n,
+            "ping": round(total / PING, 2), "carPing": round(car_area / PING, 2), "price": round(price / 1000), "car": round(car / 1000), "carN": car_n,
             "flags": flags, "id": row.get("編號", "").strip()}
 
 
@@ -263,10 +275,10 @@ def build(zips, today, codes=tuple(CITIES)):
 def write(out_dir, clusters, frm, to, names, today):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    idx = {"updated": today.isoformat(), "source": "內政部不動產成交案件實際資訊（實價登錄）開放資料：不動產買賣",
+    idx = {"v": DATA_V, "updated": today.isoformat(), "source": "內政部不動產成交案件實際資訊（實價登錄）開放資料：不動產買賣",
            "license": "政府資料開放授權條款－第 1 版", "window": {"from": frm, "to": to},
            "clusterCols": CLUSTER_COLS, "rowCols": ROW_COLS, "types": TYPES,
-           "note": "street 路段含巷弄；built 完工日 yyyymmdd；price、car 千元；ping 坪（不含車位）；floor 0＝整棟或不明；flags 1 增建、2 含家具、4 預售屋或分件登記",
+           "note": "street 路段含巷弄；built 完工日 yyyymmdd；no 門牌號（含之幾）；unit 樓之幾（0＝沒有）；price、car 千元；ping 總坪數（含車位）、carPing 車位坪數；floor 0＝整棟或不明；flags 1 增建、2 含家具、4 預售屋或分件登記",
            "counties": {}}
     for code, cls in sorted(clusters.items()):
         d = out_dir / code
@@ -282,7 +294,7 @@ def write(out_dir, clusters, frm, to, names, today):
             rows = []
             for i, c in enumerate(cs):
                 for r in c["rows"]:
-                    rows.append([i, r["ym"], r["no"], r["floor"], r["rooms"], r["ping"], r["price"], r["car"], r["carN"], r["flags"]])
+                    rows.append([i, r["ym"], r["noS"], r["floor"], r["unit"], r["rooms"], r["ping"], r["carPing"], r["price"], r["car"], r["carN"], r["flags"]])
             rows.sort(key=lambda x: (-x[1], x[0], x[2], x[3]))
             js = {"county": CITIES[code], "dist": dist,
                   "clusters": [[c["street"], c["built"], c["floors"], c["type"], c["name"], c["nmin"], c["nmax"]] for c in cs],

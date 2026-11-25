@@ -6,7 +6,7 @@ on:
     - cron: "37 3 7 * *"   # 每月 7 日 11:37（台灣時間）
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, claude/comm-v2]   # 暫時：PR 分支先跑一次新格式
     paths: ['tools/fetch_sale.py', '.github/workflows/sale-data.yml']
 permissions:
   contents: write

@@ -9,7 +9,7 @@ const DEF = {
   pre: [], extra: { amt: 0, from: '' }
  },
  stressPct: 0.75,
- house: { city: '', dist: '', rooms: 3, ping: '', built: '', btype: '大樓', park: false, comm: null,   // comm：🏘️ 社區實價選的社區 { city, dist, key, name, nick }
+ house: { city: '', dist: '', rooms: 3, ping: '', built: '', btype: '大樓', park: false, carPing: '', carPrice: '', comm: null,   // carPing 車位坪數、carPrice 車位自估價（萬，社區實價「扣車位」用）；comm：🏘️ 社區實價選的社區 { city, dist, key, name, nick }
     // 縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）、完工年（西元）、建物型態、有沒有車位
   buyDate: '', price: 1000, buyCost: 0, improve: 0, selfSince: '' },   // 取得日（所有權登記日，留空＝撥款日）、取得價（萬）、取得費用（元）、改良（萬）、設籍自住起日
  sale: { date: '', priceMode: 'growth', est: '', growth: 1.5, price: '', brokerPct: 2, other: 10000, feeMode: 'actual', landGain: 0, usedSelf: false, landUsed: false, path: 'self' },
@@ -20,7 +20,8 @@ const DEF = {
   tab: 'L', cv: 'bal',
   rng: '10', rngN: 15, from: 'disb',   // 範圍：5／10／all／n（自訂 rngN 年）；起點：disb 撥款日、now 今天前 1 年
   hide: {}, fold: {}, pin: 0, open: {},  // hide：關掉的線與卡片；fold：收合狀態（1 收、0 開，沒記錄用預設）；open：明細展開的年份
-  mk: { age: '5', type: 'same', park: 'same', m: '12', soc: true, furn: false }   // 租金行情比對條件：屋齡 ±幾年、型態、車位、月數、排除社宅包租代管、排除附家具
+  mk: { age: '5', type: 'same', park: 'same', m: '12', soc: true, furn: false },   // 租金行情比對條件：屋齡 ±幾年、型態、車位、月數、排除社宅包租代管、排除附家具
+  cm: { mode: 'all', rooms: [], floors: [], no1: true, sort: 'ym', desc: true }   // 社區實價：含車位 all／扣車位 ex、房數、樓層組（起始樓層）、中位數不算 1 樓、排序
  }
 };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -46,7 +47,7 @@ function norm(d) {
  delete r.qingan;
  d.rent = { ...clone(DEF.rent), ...r, refi: { ...clone(DEF.rent.refi), ...(r.refi || {}) } };
  const v = d.view || {};
- d.view = { ...clone(DEF.view), ...v, hide: { ...(v.hide || {}) }, fold: { ...(v.fold || {}) }, open: { ...(v.open || {}) }, mk: { ...clone(DEF.view.mk), ...(v.mk || {}) } };
+ d.view = { ...clone(DEF.view), ...v, hide: { ...(v.hide || {}) }, fold: { ...(v.fold || {}) }, open: { ...(v.open || {}) }, mk: { ...clone(DEF.view.mk), ...(v.mk || {}) }, cm: { ...clone(DEF.view.cm), ...(v.cm || {}) } };
  if (d.ui && typeof d.ui === 'object') {                              // v2 的 ui 搬進 view
   for (const k of ['tab', 'cv', 'rng', 'pin']) if (d.ui[k] != null && v[k] == null) d.view[k] = d.ui[k];
   if (d.ui.open && !v.open) d.view.open = { ...d.ui.open };
