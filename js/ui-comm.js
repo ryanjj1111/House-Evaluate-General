@@ -44,6 +44,24 @@ function cmPass(r, R, f) {
  if (f.floors.length && !f.floors.includes(Math.floor((Math.max(r[R.floor], 1) - 1) / 3) * 3 + 1)) return false;
  return true;
 }
+// 房價年化成長：單價取對數對月份做直線迴歸（3 年內的成交），斜率換成每年 %；至少 6 筆、跨 18 個月以上才算
+function cmGrowth(list, R, no1) {
+ const pts = list.filter(x => x.u > 0 && !(no1 && x.r[R.floor] === 1) && !(x.r[R.flags] & CM_F.ADD)).map(x => [Math.floor(x.r[R.ym] / 100) * 12 + x.r[R.ym] % 100, Math.log(x.u)]);
+ if (pts.length < 6) return null;
+ const t0 = Math.min(...pts.map(p => p[0])), t1 = Math.max(...pts.map(p => p[0]));
+ if (t1 - t0 < 18) return null;
+ const n = pts.length, mx = pts.reduce((a, p) => a + p[0], 0) / n, my = pts.reduce((a, p) => a + p[1], 0) / n;
+ const sxx = pts.reduce((a, p) => a + (p[0] - mx) ** 2, 0), sxy = pts.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0);
+ return { g: (Math.exp(sxy / sxx * 12) - 1) * 100, n, months: t1 - t0 };
+}
+// 帶入出售試算：估值 → 目前估價；成長率 → 房價每年成長（售價改用「目前估價 × 每年成長」）
+function cmApply(k, v) {
+ if (!(v > 0) && k === 'est') return;
+ S.sale.priceMode = 'growth';
+ if (k === 'est') S.sale.est = Math.round(v); else S.sale.growth = Math.round(v * 10) / 10;
+ save(); buildSaleInputs(); calc();
+ toast(k === 'est' ? `已帶入目前估價 ${f0(Math.round(v))} 萬` : `已帶入房價每年成長 ${(Math.round(v * 10) / 10).toFixed(1)}%`);
+}
 const cmDoor = (c, r, R) => `${c[0]}${r[R.no]}號${r[R.floor] ? `${r[R.floor]}樓` : ''}${r[R.unit] ? `之${r[R.unit]}` : ''}`;
 
 // ---------- 畫面
@@ -148,6 +166,13 @@ async function cmShow(box, code, C) {
  const by = Math.floor(c[1] / 10000);
  const peers = f.rows.filter(r => { const p = f.clusters[r[R.c]]; return r[R.c] !== ci && p[3] === c[3] && Math.abs(Math.floor(p[1] / 10000) - by) <= 5 && r[R.ym] > end - 200 && cmPass(r, R, { rooms: F.rooms, floors: [] }); });
  const ps = needCar ? { n: 0 } : cmStat(peers.map(r => ({ r, u: cmUnit(r, R, F.mode, carP) })), R, F.no1);
+ // 成長率：社區 3 年內的成交（套用房數、不套樓層），不夠就用同區同型態、完工 ±5 年的 3 年成交
+ const roomOnly = { rooms: F.rooms, floors: [] };
+ let gr = needCar ? null : cmGrowth(mine.filter(r => cmPass(r, R, roomOnly)).map(r => ({ r, u: cmUnit(r, R, F.mode, carP) })), R, F.no1), grSrc = '這個社區';
+ if (!gr && !needCar) {
+  gr = cmGrowth(f.rows.filter(r => { const p = f.clusters[r[R.c]]; return p[3] === c[3] && Math.abs(Math.floor(p[1] / 10000) - by) <= 5 && cmPass(r, R, roomOnly); }).map(r => ({ r, u: cmUnit(r, R, F.mode, carP) })), R, F.no1);
+  grSrc = `${m.dist} ${by - 5}～${by + 5} 年完工的${T[c[3]] || ''}`;
+ }
  // 估值
  const ping = +H.ping || 0, cping = H.park ? +H.carPing || 0 : 0;
  const base = ex ? ping : ping + cping, est = st.med && base ? st.med * base + (ex && H.park ? carP : 0) : 0;
@@ -176,6 +201,8 @@ async function cmShow(box, code, C) {
   <div class="cmg">${tile(`${span}成交${filt ? '（篩選後）' : ''}`, `${span === '近 2 年' ? rec.length : pass.length} 筆`)}${tile(`單價中位數（${ex ? '扣車位' : '含車位'}）`, st.med ? `${st.med.toFixed(1)} 萬/坪` : '—')}
    ${tile('一半落在', st.lo ? `${st.lo.toFixed(1)}～${st.hi.toFixed(1)}` : '—')}${tile(base ? `估值（${estL}）` : '估值', est ? `${f0(est)} 萬` : base ? '—' : '先填坪數', 'ok')}</div>
   ${st.n && st.n < 3 ? '<div class="h wn" style="margin-top:4px">筆數太少，參考就好。</div>' : ''}
+  <div class="cmap">${est ? `<button class="pri" onclick="cmApply('est',${Math.round(est)})">帶入目前估價 ${f0(est)} 萬</button>` : ''}${gr ? `<button onclick="cmApply('growth',${gr.g.toFixed(3)})">帶入每年成長 ${gr.g >= 0 ? '+' : ''}${gr.g.toFixed(1)}%</button>` : ''}</div>
+  <div class="h" style="margin-top:4px">${gr ? `房價成長：${esc(grSrc)}近 3 年 ${gr.n} 筆成交（跨 ${gr.months} 個月）的單價走勢，換算每年 <b class="${gr.g >= 0 ? 'pos' : 'neg'}">${gr.g >= 0 ? '+' : ''}${gr.g.toFixed(1)}%</b>${grSrc === '這個社區' ? '' : '（社區成交不夠，改用同區）'}。` : needCar ? '' : '成交太少，算不出房價成長。'}帶入後售價會改用「目前估價 × 每年成長」，可以在下面的「買進與出售條件」再改。</div>
   ${ps.n ? `<div class="h" style="margin-top:6px">對照：${esc(m.dist)} ${by - 5}～${by + 5} 年完工的${T[c[3]] || ''}${F.rooms.length ? `（同房數）` : ''}，近 2 年單價中位數 ${ps.med.toFixed(1)} 萬/坪（${ps.n} 筆）${st.med ? `，這個社區${st.med >= ps.med ? '高' : '低'} ${Math.abs((st.med / ps.med - 1) * 100).toFixed(0)}%` : ''}。</div>` : ''}
   <div class="sub" style="margin-top:8px">成交紀錄 <span class="h">點表頭可以排序</span></div>
   <div class="w"><table class="cmr"><tr>${th('ym', '年月')}${th('floor', '樓層')}<th>房</th>${th('ping', ex ? '坪*' : '坪')}${th('price', '總價')}${th('u', '單價')}</tr>${show.map(({ r, u }) => {
