@@ -16,3 +16,4 @@ jobs:
           node-version: 20
       - run: node tools/test/engine-test.mjs
       - run: python3 tools/test/rent_data_test.py
+      - run: python3 tools/test/sale_data_test.py

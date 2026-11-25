@@ -30,6 +30,10 @@
 --b45:#4a2622;--b35:#46301a;--b20:#3b3416;--b15:#173a35;
 --shd:rgba(0,0,0,.35);--ovl:rgba(0,0,0,.6)}
 b,strong,th{font-weight:600}
+.cmi{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;width:100%;text-align:left;margin-top:6px;padding:8px 10px}.cmi b{flex:1 1 auto}.cmi span{order:3;flex-basis:100%;font-size:12px;color:var(--mut)}.cmi em{font-style:normal;font-size:12px;color:var(--mut)}
+.cmh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.cmh b{font-size:16px}
+.cmg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.cmt{background:var(--soft2);border-radius:8px;padding:8px 10px}.cmt span{display:block;font-size:11.5px;color:var(--tx2)}.cmt b{font-size:17px}.cmt.ok{background:var(--okbg)}.cmt.ok b{color:var(--okt)}
+.cmr{width:100%;font-size:12px}.cmr td,.cmr th{padding:4px 3px;text-align:right;white-space:nowrap}.cmr td:first-child,.cmr th:first-child{text-align:left;color:var(--mut)}.cmr tr.cmtag td{text-align:left;color:var(--mut);font-size:11px;padding-top:0;border-bottom:1px solid var(--line)}
 .mkt{width:100%;font-size:12px;margin-top:4px}.mkt td,.mkt th{padding:4px 3px}.mkt td:nth-child(3),.mkt td:nth-child(4),.mkt th:nth-child(3),.mkt th:nth-child(4){text-align:right;white-space:nowrap}.mkt td:first-child{white-space:nowrap;color:var(--mut)}.mkt td:nth-child(2),.mkt th:nth-child(2),.mkt th:first-child{text-align:left}.mkf>summary{cursor:pointer;font-weight:400}.mkt sup{color:var(--mut)}
 /* 線條圖示（js/icons.js，Lucide ISC）：顯示時把 emoji 換成跟文字同色的 SVG */
 .i{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.22em;flex:none}.i-tick{width:1.2em;height:1.2em}
@@ -191,6 +195,8 @@ details>summary{transition:color .15s}
  <details class="p fd" data-k="saleTime" open><summary class="fs"><b>🗓️ 出售時點</b><span class="ib" role="button" tabindex="0" data-tn="出售時點" data-tt="上面的色帶是持有期間對應的房地合一稅率，墨青色框線是可以用自住優惠的期間。&#10;下面的圖是「如果在那個月賣」的實拿（左軸）和房地合一稅（右軸），從今天起 12 年；橘色虛線是照出租計畫出租的情況。房價依目前估價和每年成長率推算。">ⓘ</span></summary>
   <div id="saleBand"></div>
   <div id="saleCvi" class="cvi"></div><canvas id="saleCv"></canvas><div class="lg" id="saleLg"></div></details>
+ <details class="p fd" data-k="comm" open><summary class="fs"><b>🏘️ 社區實價</b><span class="ib" role="button" tabindex="0" data-tn="社區實價" data-tt="內政部實價登錄的買賣資料（臺中、臺南、高雄最近 3 年），GitHub 每月自動整理一次。&#10;同一條路（含巷弄）、同一天完工、總樓層一樣的成交，算成同一個社區。排除親友、員工、債務、政府標售等特殊交易，透天不算。&#10;單價＝（總價 − 車位價）÷ 坪數（不含車位）；中位數不算一樓和有增建的。車位沒拆價時用社區車位中位數補上。&#10;估值＝單價中位數 × 你的坪數，有車位再加社區車位行情；只是參考，實際成交還要看樓層、座向、屋況。&#10;社區名稱：臺南用市府的公寓大廈管理委員清冊自動對上；臺中的名冊沒有地址，打名稱後要自己從候選中挑；高雄沒有公開名冊，用路名找，可以自己取名字。&#10;你選的社區和取的名字只存在這台裝置和你匯出的設定檔。">ⓘ</span></summary>
+  <div id="cmIn"></div></details>
  <details class="p fd" data-k="saleIn" open><summary class="fs"><b>🏠 買進與出售條件</b></summary>
   <div id="saleIn"></div></details>
 </div>
@@ -240,7 +246,8 @@ details>summary{transition:color .15s}
 <li><b>💸 出售試算</b>：比較一直自住和照出租計畫出租兩條路的房地合一稅與實拿。</li>
 <li><b>🧾 售出後實拿</b>：售價 → 出售費用 → 土地增值稅 → 房地合一稅 → 還清房貸 → 實拿。</li>
 <li><b>📋 房地合一稅明細</b>：課稅所得怎麼算、持有幾年、適用稅率或自住優惠；不能用自住優惠時會寫出原因。</li>
-<li><b>🗓️ 出售時點</b>：色帶是持有期間的稅率，墨青色框線是可以用自住優惠的期間；圖表是每個月賣出的實拿和稅，看哪個時間點賣最划算。</li></ul></details>
+<li><b>🗓️ 出售時點</b>：色帶是持有期間的稅率，墨青色框線是可以用自住優惠的期間；圖表是每個月賣出的實拿和稅，看哪個時間點賣最划算。</li>
+<li><b>🏘️ 社區實價</b>：實價登錄的買賣資料（臺中、臺南、高雄最近 3 年）。用社區名稱或路名找到你的社區，就會看到社區單價中位數（扣車位）、車位行情、照你坪數估的價格、同區同屋齡的對照，以及最近成交的樓層、坪數、總價。臺南大約六成社區對得到名稱；臺中打名稱後要從同區、年份相近的候選中挑；高雄用路名找，可以自己取名字。</li></ul></details>
 
 <details class="gds" id="g4"><summary>📅 明細</summary>
 <ul><li>每年一列：期數、利率、月付範圍、本金、利息、提前還款、年底餘額（萬元）。點一年可以展開每個月（元）。底色標出來的是今年。</li></ul></details>
@@ -300,19 +307,20 @@ details>summary{transition:color .15s}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/theme.js?v=202611231729"></script>
-<script src="js/icons.js?v=202611231729"></script>
-<script src="js/tip.js?v=202611231729"></script>
-<script src="js/policy.js?v=202611231729"></script>
-<script src="js/state.js?v=202611231729"></script>
-<script src="js/fields.js?v=202611231729"></script>
-<script src="js/engine.js?v=202611231729"></script>
-<script src="js/charts.js?v=202611231729"></script>
-<script src="js/ui-core.js?v=202611231729"></script>
-<script src="js/ui-loan.js?v=202611231729"></script>
-<script src="js/ui-rent.js?v=202611231729"></script>
-<script src="js/ui-market.js?v=202611231729"></script>
-<script src="js/ui-sale.js?v=202611231729"></script>
-<script src="js/ui-chart.js?v=202611231729"></script>
-<script src="js/main.js?v=202611231729"></script>
+<script src="js/theme.js?v=202611251019"></script>
+<script src="js/icons.js?v=202611251019"></script>
+<script src="js/tip.js?v=202611251019"></script>
+<script src="js/policy.js?v=202611251019"></script>
+<script src="js/state.js?v=202611251019"></script>
+<script src="js/fields.js?v=202611251019"></script>
+<script src="js/engine.js?v=202611251019"></script>
+<script src="js/charts.js?v=202611251019"></script>
+<script src="js/ui-core.js?v=202611251019"></script>
+<script src="js/ui-loan.js?v=202611251019"></script>
+<script src="js/ui-rent.js?v=202611251019"></script>
+<script src="js/ui-comm.js?v=202611251019"></script>
+<script src="js/ui-market.js?v=202611251019"></script>
+<script src="js/ui-sale.js?v=202611251019"></script>
+<script src="js/ui-chart.js?v=202611251019"></script>
+<script src="js/main.js?v=202611251019"></script>
 </body></html>
