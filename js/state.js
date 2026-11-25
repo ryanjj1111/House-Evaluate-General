@@ -9,7 +9,8 @@ const DEF = {
   pre: [], extra: { amt: 0, from: '' }
  },
  stressPct: 0.75,
- house: { city: '', dist: '', rooms: 3, ping: '', built: '', btype: '大樓', park: false,   // 縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）、完工年（西元）、建物型態、有沒有車位
+ house: { city: '', dist: '', rooms: 3, ping: '', built: '', btype: '大樓', park: false, comm: null,   // comm：🏘️ 社區實價選的社區 { city, dist, key, name, nick }
+    // 縣市代碼（實價登錄）、行政區、房數、坪數（不含車位）、完工年（西元）、建物型態、有沒有車位
   buyDate: '', price: 1000, buyCost: 0, improve: 0, selfSince: '' },   // 取得日（所有權登記日，留空＝撥款日）、取得價（萬）、取得費用（元）、改良（萬）、設籍自住起日
  sale: { date: '', priceMode: 'growth', est: '', growth: 1.5, price: '', brokerPct: 2, other: 10000, feeMode: 'actual', landGain: 0, usedSelf: false, landUsed: false, path: 'self' },
  hold: { mgmt: 2500, mgmtPer: 'm', houseTax: 3000, landTax: 300, selfRate: 1, incomeRate: 12 },

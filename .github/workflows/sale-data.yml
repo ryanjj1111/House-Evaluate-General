@@ -1,0 +1,45 @@
+# 社區實價：每月下載實價登錄買賣（臺中、臺南、高雄最近 3 年），整理後放到獨立的 data-sale 分支（每次覆蓋，不留歷史）
+# 網頁從 raw.githubusercontent.com 讀 data-sale 分支的檔案，所以 main 不會因為資料越來越大
+name: 更新社區實價
+on:
+  schedule:
+    - cron: "37 3 7 * *"   # 每月 7 日 11:37（台灣時間）
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/fetch_sale.py', '.github/workflows/sale-data.yml']
+permissions:
+  contents: write
+concurrency:
+  group: sale-data
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 tools/test/sale_data_test.py
+      # 舊的季資料不會再變，存在快取裡，每月只下載新的一季和本期
+      - uses: actions/cache@v4
+        with:
+          path: .cache/lvr
+          key: lvr-seasons-${{ github.run_id }}
+          restore-keys: lvr-seasons-
+      - run: python3 tools/fetch_sale.py --out out/sale --cache .cache/lvr
+      - name: 只保留最近 16 季的快取
+        run: ls -1t .cache/lvr/*.zip 2>/dev/null | tail -n +17 | xargs -r rm -f
+      - name: 發布到 data-sale 分支（覆蓋，不留歷史）
+        run: |
+          cd out/sale
+          git init -q -b data-sale
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '# 社區實價資料\n\n由 main 分支的 tools/fetch_sale.py 每月自動產生，每次覆蓋。來源：內政部實價登錄開放資料、臺南市公寓大廈管理委員清冊、臺中市公寓大廈報備資料（政府資料開放授權條款第 1 版）。\n' > README.md
+          git add -A
+          git commit -q -m "社區實價 $(date -u +%Y-%m-%d)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data-sale
+          du -sh . --exclude=.git
