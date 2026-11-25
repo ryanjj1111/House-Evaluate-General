@@ -164,6 +164,13 @@ def sale_rows(zbytes, codes):
 
 
 # ---------- 社區名冊
+def clean_name(n):
+    """'%允將海安管理委員會%' → '允將海安'；'江南藝術園林管委會' → '江南藝術園林'。"""
+    n = (n or "").strip().strip("%＊*　 ")
+    n = re.sub(r"(公寓大廈)?(管理委員會|管委會|管理負責人)$", "", n).strip()
+    return n
+
+
 def tainan_registry(get):
     meta = json.loads(get(f"https://data.gov.tw/api/v2/rest/dataset/{TN_REG_DATASET}"))["result"]
     ds = [d for d in meta.get("distribution", []) if (d.get("resourceFormat") or "").upper() == "CSV"]
@@ -175,7 +182,7 @@ def tainan_registry(get):
     for r in rows:
         p = parse_addr(r.get("建築物地址", ""))
         y = re.match(r"\((\d+)\)", (r.get("使用執照") or "").strip())
-        name = (r.get("管理委員會") or "").strip()
+        name = clean_name(r.get("管理委員會"))
         if p and name:
             out.append({"dist": p[0], "street": p[1], "no": p[2], "year": int(y.group(1)) + 1911 if y else 0,
                         "floors": int(FR.num(r.get("地上層數"))), "name": name})
@@ -189,7 +196,7 @@ def taichung_registry(get):
     for r in rows:
         r = {k.strip("﻿ "): v for k, v in r.items() if k}
         y = re.match(r"(\d{2,3})-", (r.get("使照序號") or "").strip())
-        name = (r.get("公寓大廈名稱") or "").strip().rstrip("*")
+        name = clean_name(r.get("公寓大廈名稱"))
         if name and r.get("行政區"):
             out.append({"dist": r["行政區"].strip(), "year": int(y.group(1)) + 1911 if y else 0,
                         "hh": int(FR.num(r.get("戶數"))), "name": name})

@@ -50,7 +50,7 @@ async function renderComm() {
  if (!CM.dist || !ds.includes(CM.dist)) CM.dist = ds.includes(H.dist) ? H.dist : ds[0];
  box.innerHTML = `<div class="g"><label><span class="lt">行政區</span><select id="cmDist">${ds.map(d => `<option${d === CM.dist ? ' selected' : ''}>${esc(d)}</option>`).join('')}</select></label>
   <label><span class="lt">搜尋</span><input id="cmQ" type="search" placeholder="社區名稱或路名" value="${esc(CM.q)}"></label></div>
-  <div class="h" style="margin-top:4px">${C.nameMode === 'match' ? '社區名稱來自臺南市公寓大廈管理委員清冊，大約六成的社區對得到名稱；對不到的用路名找。'
+  <div class="h" style="margin-top:4px">${C.nameMode === 'match' ? '社區名稱來自臺南市公寓大廈管理委員清冊，接近一半的社區對得到名稱；對不到的用路名找。'
    : C.nameMode === 'pick' ? '臺中市的社區名冊沒有地址，打名稱會先找到名冊，再從同區、差不多年份完工的社區裡挑出你的。'
    : '這個縣市沒有公開的社區名冊，請用路名找；選好後可以自己取名字。'}</div>
   <div id="cmList" style="margin-top:6px"></div>${H.comm ? '<button style="margin-top:6px" onclick="CM.edit=false;renderComm()">取消</button>' : ''}`;
@@ -144,7 +144,7 @@ async function cmShow(box, code, C) {
   <label style="margin-top:6px"><span class="lt">自己取的名字（只存在這台裝置）</span><input placeholder="例如：我家" value="${esc(m.nick || '')}" onchange="cmNick(this.value)"></label>
   <div class="cmg">${tile(`${span}成交`, `${(span === '近 2 年' ? rec : units).length} 筆`)}${tile('單價中位數（扣車位）', med ? `${med.toFixed(1)} 萬/坪` : '—')}
    ${tile('社區車位行情', carMed ? `${f0(carMed / 10)} 萬` : '—')}${tile(ping ? `估值（${ping} 坪${H.park ? '＋車位' : ''}）` : '估值', est ? `${f0(est)} 萬` : ping ? '—' : '先填坪數', 'ok')}</div>
-  ${peerMed ? `<div class="h" style="margin-top:6px">對照：${esc(m.dist)}${by - 5}～${by + 5} 年完工的${T[c[3]] || ''}，${'近 2 年'}單價中位數 ${peerMed.toFixed(1)} 萬/坪（${peers.length} 筆）${med ? `，這個社區${med >= peerMed ? '高' : '低'} ${Math.abs((med / peerMed - 1) * 100).toFixed(0)}%` : ''}。</div>` : ''}
+  ${peerMed ? `<div class="h" style="margin-top:6px">對照：${esc(m.dist)} ${by - 5}～${by + 5} 年完工的${T[c[3]] || ''}，${'近 2 年'}單價中位數 ${peerMed.toFixed(1)} 萬/坪（${peers.length} 筆）${med ? `，這個社區${med >= peerMed ? '高' : '低'} ${Math.abs((med / peerMed - 1) * 100).toFixed(0)}%` : ''}。</div>` : ''}
   <div class="sub" style="margin-top:8px">最近成交</div>
   <div class="w"><table class="cmr"><tr><th>年月</th><th>樓層</th><th>房</th><th>坪</th><th>總價</th><th>單價</th></tr>${show.map(({ r, u, est }) => {
    const ym = String(r[R.ym]), tags = [r[R.carN] ? (r[R.car] ? `車位 ${f0(r[R.car] / 10)} 萬` : '車位未拆價') : '', r[R.floor] === 1 ? '一樓' : '', r[R.flags] & CM_F.ADD ? '增建' : '', r[R.flags] & CM_F.FURN ? '含家具' : ''].filter(Boolean).join('・');
