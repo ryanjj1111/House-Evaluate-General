@@ -180,7 +180,7 @@ async function cmShow(box, code, C) {
   <div class="sub" style="margin-top:8px">成交紀錄 <span class="h">點表頭可以排序</span></div>
   <div class="w"><table class="cmr"><tr>${th('ym', '年月')}${th('floor', '樓層')}<th>房</th>${th('ping', ex ? '坪*' : '坪')}${th('price', '總價')}${th('u', '單價')}</tr>${show.map(({ r, u }) => {
    const ym = String(r[R.ym]);
-   const tags = [cmDoor(c, r, R), r[R.carN] ? `車位 ${r[R.carN]} 個 ${r[R.carPing]} 坪${r[R.car] ? ` ${f0(r[R.car] / 10)} 萬` : '（未拆價）'}` : '', r[R.floor] === 1 ? '1 樓' : '', r[R.flags] & CM_F.ADD ? '增建' : '', r[R.flags] & CM_F.FURN ? '含家具' : ''].filter(Boolean).join('・');
+   const tags = [cmDoor(c, r, R), r[R.carN] ? `車位 ${r[R.carN]} 個${r[R.carPing] ? ` ${r[R.carPing]} 坪` : ''}${r[R.car] ? ` ${f0(r[R.car] / 10)} 萬` : '（未拆價）'}` : '', r[R.floor] === 1 ? '1 樓' : '', r[R.flags] & CM_F.ADD ? '增建' : '', r[R.flags] & CM_F.FURN ? '含家具' : ''].filter(Boolean).join('・');
    const pg = ex && r[R.carN] ? r[R.ping] - r[R.carPing] : r[R.ping];
    return `<tr><td>${ym.slice(0, 4)}/${ym.slice(4)}</td><td>${r[R.floor] || '—'}</td><td>${r[R.rooms] || '—'}</td><td>${(+pg).toFixed(1)}</td><td>${f0(r[R.price] / 10)} 萬</td><td>${u ? u.toFixed(1) : '—'}</td></tr><tr class="cmtag"><td colspan="6">${esc(tags)}</td></tr>`;
   }).join('') || '<tr><td colspan="6" class="h">沒有符合篩選的成交。</td></tr>'}</table></div>
