@@ -52,7 +52,7 @@ function norm(d) {
   if (d.ui.open && !v.open) d.view.open = { ...d.ui.open };
  }
  delete d.ui; delete d.name; delete d.src; delete d.mine;
- if (!['L', 'R', 'X', 'Y'].includes(d.view.tab)) d.view.tab = 'L';
+ if (!['L', 'R', 'X'].includes(d.view.tab)) d.view.tab = 'L';   // 明細分頁（Y）已併進房貸頁
  if (!['bal', 'pay', 'yr'].includes(d.view.cv)) d.view.cv = 'bal';
  if (!['5', '10', 'all', 'n'].includes(String(d.view.rng))) d.view.rng = '10';
  d.view.rng = String(d.view.rng);

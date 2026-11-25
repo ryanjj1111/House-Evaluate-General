@@ -185,6 +185,7 @@ const bad = E.norm({ loan: { rateMode: 'xx', pre: 'x' }, view: { tab: 'Z', rng: 
 ok('不合法的值改回預設', bad.loan.rateMode === 'single' && Array.isArray(bad.loan.pre) && bad.view.tab === 'L' && bad.view.rng === '10');
 const v3 = E.norm({ v: 3, house: { city: 'b', dist: '南區', rooms: 3, ping: 31.9 }, view: { fold: { market: 1 }, mk: { age: '10' } } });
 ok('v3 → v4：房屋補完工年、型態、車位，保留原值與收合', v3.v === 4 && v3.house.rooms === 3 && v3.house.built === '' && v3.house.btype === '大樓' && v3.house.park === false && v3.view.fold.market === 1 && v3.view.mk.age === '10' && v3.view.mk.type === 'same');
+ok('舊的明細分頁（Y）改回房貸頁', E.norm({ view: { tab: 'Y' } }).view.tab === 'L' && E.norm({ view: { tab: 'X' } }).view.tab === 'X');
 ok('norm 不改到原物件', (() => { const o = { loan: { amt: 1 } }; E.norm(o); return !o.view; })());
 
 // ---------- 14. 版本號：index.html 裡每個 js 的 ?v= 要一致（改版用 node tools/bump.mjs）
