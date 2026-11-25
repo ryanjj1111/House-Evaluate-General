@@ -26,25 +26,11 @@ def parse(a, dist=""):
     return dist, m.group(1), m.group(2), int(m.group(3))   # 區、路段、巷弄、號
 ROC = lambda s: int(re.sub(r"\D", "", s)[:-4] or 0) + 1911 if len(re.sub(r"\D", "", s)) >= 6 else 0
 
-# 臺中 PDF
-page = get("https://thd.taichung.gov.tw/981520/Lpsimplelist").decode("utf-8", "replace")
-pdfs = re.findall(r'href="([^"]+\.pdf)"[^>]*>([^<]*)', page) + re.findall(r'href="(/media/\d+/[^"]+)"', page)
-print("PDF 連結樣本：", pdfs[:6])
-links = [html.unescape(p[0] if isinstance(p, tuple) else p) for p in pdfs]
-links = [l for l in links if "公寓大廈" in urllib.parse.unquote(l)] or links
-url = links[0] if links else None
 reg = {"台中": [], "台南": []}
-if url:
-    if url.startswith("/"): url = "https://thd.taichung.gov.tw" + url
-    print("臺中 PDF：", urllib.parse.unquote(url))
-    open("/tmp/tc.pdf", "wb").write(get(url))
-    subprocess.run(["pdftotext", "-layout", "/tmp/tc.pdf", "/tmp/tc.txt"], check=True)
-    for line in open("/tmp/tc.txt", encoding="utf-8"):
-        m = re.match(r"\s*(\d{3})-\d{5}(?:,\S+)?\s+(.+?)\s+(?:管理委員會|管理負責人)?\s*(\d+)\s+(\S+區\S+)", line)
-        if m:
-            p = parse(m.group(4))
-            if p: reg["台中"].append((p, int(m.group(1)) + 1911, 0, m.group(2).strip()))
-    print("臺中名冊解析：", len(reg["台中"]), reg["台中"][:3])
+lst = get("https://data.gov.tw/datasets/export/csv").decode("utf-8-sig", "replace")
+for row in csv.reader(io.StringIO(lst)):
+    if len(row) > 10 and ("臺中" in row[1] or "台中" in row[1]) and any(k in row[1] for k in ("使用執照", "使照", "建築執照", "門牌", "建物")):
+        print("臺中資料集：", row[0], row[1], "｜欄位：", row[10][:300], "｜", row[6][:200])
 for did in [120168]:
     j = json.loads(get(f"https://data.gov.tw/api/v2/rest/dataset/{did}"))["result"]
     d = [x for x in j["distribution"] if (x.get("resourceFormat") or "").upper() == "CSV"]
