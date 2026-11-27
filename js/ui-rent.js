@@ -64,21 +64,26 @@ function calcRent() {
  $('rentTip').innerHTML = tipI(`【目前選的方式】\n${note}\n\n【注意事項】\n${al.join('\n\n')}\n\n【四種出租方式】\n${RENT_MODES_TIP}`, '出租方式比較');
 }
 // 🔁 轉貸試算：轉貸後出租 vs 不轉貸（新青安＝直接出租違規；一般房貸＝原利率）
+// 放在「📝 出租條件」最下面：沒填出租後利率時只有一行小字提示；填了才顯示結果，比較表和費用明細收在「看明細」裡
+const REFI_TIP = '新青安要自住，想合法出租可以先轉貸成一般房貸。這裡比較「轉貸後出租」和「直接出租（違規）」：轉貸要付一次性費用，但不會被追回補貼、利率通常也比違規重新核定的低。&#10;一般房貸則是比較「轉貸」和「不轉貸」。&#10;回本月數＝一次性費用 ÷ 每月少付的月付（出租後第一年平均）。';
 function calcRefi() {
+ const o = $('refiRes'); if (!o) return;
  const D = rentS(), x = refiCompare(D);
- if (!x) { $('refiRes').innerHTML = '<div class="h">在「📝 出租條件」填「出租後房貸利率」（轉貸後的利率），這裡會比較轉貸的費用、月付和回本時間。</div>'; return; }
+ const br = S.loan.rateMode === 'qingan' && S.rent.breach === true;
+ if (!x) { o.innerHTML = br ? '' : '<div class="h" style="margin-top:6px">填了「出租後房貸利率」（轉貸後的利率），下面的出租 vs 自住就會把轉貸算進去，這裡也會列出轉貸費用、月付差和幾個月回本。</div>'; return; }
  const bn = x.alt === 'breach' ? '直接出租（違規）' : '不轉貸';
  const c = x.cost.parts;
  let v = `轉貸一次性費用約 <b>${f0(x.cost.total)} 元</b>，`;
  v += x.save > 0 ? `轉貸後月付比${bn}每月少 <b>${f0(x.save)} 元</b>，約 <b>${x.payback} 個月</b>回本。` : `但轉貸後月付沒有比${bn}低（每月${x.save < 0 ? '多' : '差'} ${f0(Math.abs(x.save))} 元），費用回不來。`;
  if (x.alt === 'breach') v += '轉貸可以合法出租，不會被追回補貼或被銀行收回借款。';
- $('refiRes').innerHTML = `<div class="verdict">${v}</div>
+ o.innerHTML = `<div class="sub">🔁 轉貸試算<span class="ib" role="button" tabindex="0" data-tn="轉貸試算" data-tt="${REFI_TIP}">ⓘ</span></div><div class="verdict">${v}</div>
+ <details class="refd"><summary class="h">看比較表與費用明細</summary>
  <div class="w" style="margin-top:6px"><table class="st"><tr><th></th><th>轉貸後出租</th><th>${bn}</th></tr>
   <tr><td>利率</td><td>${pc(x.rateA)}</td><td>${pc(x.rateB)}</td></tr>
   <tr><td>第一年平均月付</td><td>${f0(x.payA)}</td><td>${f0(x.payB)}</td></tr>
   <tr><td>還清年月</td><td>${ymTxt(x.endA)}</td><td>${ymTxt(x.endB)}</td></tr>
   <tr><td>出租後總利息</td><td>${w1(x.intA)} 萬</td><td>${w1(x.intB)} 萬</td></tr>
   <tr><td>一次性費用</td><td>${f0(x.cost.total)}</td><td>—</td></tr></table></div>
- <div class="h" style="margin-top:4px">費用明細：開辦 ${f0(c.fee)}＋代書 ${f0(c.scriv)}＋設定規費 ${f0(c.setFee)}＋其他 ${f0(c.other)}${c.penalty ? `＋違約金 ${f0(c.penalty)}` : ''} 元（以出租前剩餘本金 ${w1(x.cost.bal)} 萬計）。${x.endA > x.endB ? '轉貸拉長年限：月付變低，但總利息變多。' : ''}</div>`;
+ <div class="h" style="margin-top:4px">費用明細：開辦 ${f0(c.fee)}＋代書 ${f0(c.scriv)}＋設定規費 ${f0(c.setFee)}＋其他 ${f0(c.other)}${c.penalty ? `＋違約金 ${f0(c.penalty)}` : ''} 元（以出租前剩餘本金 ${w1(x.cost.bal)} 萬計）。${x.endA > x.endB ? '轉貸拉長年限：月付變低，但總利息變多。' : ''}</div></details>`;
 }
 function setMode(k) { S.rent.mode = k; save(); calcRent(); }

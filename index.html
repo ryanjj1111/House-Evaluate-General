@@ -34,6 +34,7 @@ b,strong,th{font-weight:600}
 .cmh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.cmh>button{flex-shrink:0;white-space:nowrap}.cmh b{font-size:16px}
 .cmg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.cmt{background:var(--soft2);border-radius:8px;padding:8px 10px}.cmt span{display:block;font-size:11.5px;color:var(--tx2)}.cmt b{font-size:17px}.cmt.ok{background:var(--okbg)}.cmt.ok b{color:var(--okt)}
 .cmc{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.cmc .seg1{padding:4px 10px;font-size:13px}.seg1.on{background:var(--acc);color:var(--onpri);border-color:var(--acc)}.cmck{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:6px;margin-top:8px;font-size:12px;text-align:left}.cmck input{width:auto}.cms{cursor:pointer;user-select:none}.cms.on{color:var(--pri)}
+.refd>summary{cursor:pointer;margin-top:6px}
 .cmap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .cmr{width:100%;font-size:12px}.cmr td,.cmr th{padding:4px 3px;text-align:right;white-space:nowrap}.cmr td:first-child,.cmr th:first-child{text-align:left;color:var(--mut)}.cmr tr.cmtag td{text-align:left;color:var(--mut);font-size:11px;padding-top:0;border-bottom:1px solid var(--line)}
 .mkt{width:100%;font-size:12px;margin-top:4px}.mkt td,.mkt th{padding:4px 3px}.mkt td:nth-child(3),.mkt td:nth-child(4),.mkt th:nth-child(3),.mkt th:nth-child(4){text-align:right;white-space:nowrap}.mkt td:first-child{white-space:nowrap;color:var(--mut)}.mkt td:nth-child(2),.mkt th:nth-child(2),.mkt th:first-child{text-align:left}.mkf>summary{cursor:pointer;font-weight:400}.mkt sup{color:var(--mut)}
@@ -174,22 +175,25 @@ details>summary{transition:color .15s}
 </div>
 
 <div class="pg" id="pgR">
- <details class="p fd" data-k="rentRes" open><summary class="fs"><b>🔑 出租 vs 自住</b><span class="ib" role="button" tabindex="0" data-tn="出租 vs 自住" data-tt="比較「從某個月起不住、改出租」和「繼續自住」在出租後第一年的平均每月現金流。&#10;兩邊都在還房貸本金，所以差額主要來自：租金、租賃所得稅、新青安違規多付的利息、變重的房屋稅地價稅、修繕，以及你自己在外面租房的費用。&#10;出租對未來出售的影響（失去自住優惠）會在 💸 出售分頁計算。">ⓘ</span></summary>
-  <div class="verdict" id="rentRes"></div>
-  <div id="rentBars" style="margin-top:8px"></div></details>
- <details class="p fd" data-k="rentCmp" open><summary class="fs"><b>📋 出租方式比較</b><span id="rentTip"></span></summary>
-  <div class="w"><table class="rt" id="rentT"></table></div></details>
- <details class="p fd" data-k="refi" open><summary class="fs"><b>🔁 轉貸試算</b><span class="ib" role="button" tabindex="0" data-tn="轉貸試算" data-tt="新青安要自住，想合法出租可以先轉貸成一般房貸。這裡比較「轉貸後出租」和「直接出租（違規）」：轉貸要付一次性費用，但不會被追回補貼、利率通常也比違規重新核定的低。&#10;一般房貸則是比較「轉貸」和「不轉貸」。&#10;回本月數＝一次性費用 ÷ 每月少付的月付（出租後第一年平均）。">ⓘ</span></summary>
+ <details class="p fd" data-k="rentIn" open><summary class="fs"><b>📝 出租條件</b></summary>
+  <div id="rentIn"></div>
   <div id="refiRes"></div></details>
  <details class="p fd" data-k="hold" open><summary class="fs"><b>🏠 自住時的持有成本</b></summary>
   <div id="holdIn"></div></details>
  <details class="p fd" data-k="market" data-shut><summary class="fs"><b>🏘️ 租金行情</b><span class="ib" role="button" tabindex="0" data-tn="租金行情" data-tt="內政部實價登錄的租賃資料，GitHub 每月自動整理一次：整戶或整層出租、住家用途，排除親友等特殊關係。&#10;用你的房屋資料找相近的租約：同行政區、同房數、屋齡相近、同建物型態、有沒有車位一樣；預設排除社宅包租代管（租金通常比市價低）。樣本太少會自動放寬，並寫出放寬了什麼。&#10;你有車位時，金額用含車位的總租金；沒有車位的租約會加上這區的車位租金中位數再比。&#10;只有透過包租代管業者或仲介的租約一定要登錄，屋主自己出租的常常沒登錄，所以行情通常偏低，看最相近的幾筆一起判斷。&#10;按「帶入」才會把數字填進出租條件，之後可以再自己改。">ⓘ</span></summary>
   <div id="mkIn"></div></details>
- <details class="p fd" data-k="rentIn" open><summary class="fs"><b>📝 出租條件</b></summary>
-  <div id="rentIn"></div></details>
+ <details class="p fd" data-k="rentRes" open><summary class="fs"><b>🔑 出租 vs 自住</b><span class="ib" role="button" tabindex="0" data-tn="出租 vs 自住" data-tt="比較「從某個月起不住、改出租」和「繼續自住」在出租後第一年的平均每月現金流。&#10;兩邊都在還房貸本金，所以差額主要來自：租金、租賃所得稅、新青安違規多付的利息、變重的房屋稅地價稅、修繕，以及你自己在外面租房的費用。&#10;出租對未來出售的影響（失去自住優惠）會在 💸 出售分頁計算。">ⓘ</span></summary>
+  <div class="verdict" id="rentRes"></div>
+  <div id="rentBars" style="margin-top:8px"></div></details>
+ <details class="p fd" data-k="rentCmp" open><summary class="fs"><b>📋 出租方式比較</b><span id="rentTip"></span></summary>
+  <div class="w"><table class="rt" id="rentT"></table></div></details>
 </div>
 
 <div class="pg" id="pgX">
+ <details class="p fd" data-k="saleIn" open><summary class="fs"><b>🏠 買進與出售條件</b></summary>
+  <div id="saleIn"></div></details>
+ <details class="p fd" data-k="comm" open><summary class="fs"><b>🏘️ 社區實價</b><span class="ib" role="button" tabindex="0" data-tn="社區實價" data-tt="內政部實價登錄的買賣資料（臺中、臺南、高雄最近 3 年），GitHub 每月自動整理一次。&#10;同一條路（含巷弄）、同一天完工、總樓層一樣的成交，算成同一個社區。排除親友、員工、債務、政府標售等特殊交易，透天不算。&#10;單價有兩種算法：含車位（預設）＝總價 ÷ 總坪數，中古屋最常這樣比；扣車位＝（總價 − 車位數 × 你設的車位價）÷（總坪數 − 車位坪數）。&#10;估值＝單價中位數 × 你的總坪數；扣車位模式是 × 不含車位的坪數，再加你設的車位價。按「帶入」會填進上面的目前估價。&#10;房價成長＝這個社區 3 年內成交單價的走勢（取對數做直線迴歸）換算成每年 %；社區成交不到 6 筆或不到 18 個月，改用同區同型態、完工 ±5 年的成交。可以篩房數、樓層（每 3 層一組），數字跟著重算；中位數預設不算 1 樓和有增建的。只是參考，實際成交還要看樓層、座向、屋況。&#10;社區名稱：臺南用市府的公寓大廈管理委員清冊自動對上；臺中的名冊沒有地址，打名稱後要自己從候選中挑；高雄沒有公開名冊，用路名找，可以自己取名字。&#10;你選的社區和取的名字只存在這台裝置和你匯出的設定檔。">ⓘ</span></summary>
+  <div id="cmIn"></div></details>
  <details class="p fd" data-k="saleRes" open><summary class="fs"><b>💸 出售試算</b><span class="ib" role="button" tabindex="0" data-tn="出售試算" data-tt="假設在預計出售日賣掉：售價扣掉仲介與出售費用、土地增值稅、房地合一稅，再還清房貸，剩下的就是實拿。&#10;同時比較兩條路：一直自住，或照 🔑 出租頁的計畫出租（從開始出租一直租到出售）。出租過會失去房地合一的自住優惠和自用土地增值稅率。&#10;稅額是依目前規定試算，實際以國稅局、地方稅務局核定為準。">ⓘ</span></summary>
   <div class="verdict" id="saleRes"></div></details>
  <details class="p fd" data-k="saleWf" open><summary class="fs"><b>🧾 售出後實拿</b></summary>
@@ -199,10 +203,6 @@ details>summary{transition:color .15s}
  <details class="p fd" data-k="saleTime" open><summary class="fs"><b>🗓️ 出售時點</b><span class="ib" role="button" tabindex="0" data-tn="出售時點" data-tt="上面的色帶是持有期間對應的房地合一稅率，墨青色框線是可以用自住優惠的期間。&#10;下面的圖是「如果在那個月賣」的實拿（左軸）和房地合一稅（右軸），從今天起 12 年；橘色虛線是照出租計畫出租的情況。房價依目前估價和每年成長率推算。">ⓘ</span></summary>
   <div id="saleBand"></div>
   <div id="saleCvi" class="cvi"></div><canvas id="saleCv"></canvas><div class="lg" id="saleLg"></div></details>
- <details class="p fd" data-k="comm" open><summary class="fs"><b>🏘️ 社區實價</b><span class="ib" role="button" tabindex="0" data-tn="社區實價" data-tt="內政部實價登錄的買賣資料（臺中、臺南、高雄最近 3 年），GitHub 每月自動整理一次。&#10;同一條路（含巷弄）、同一天完工、總樓層一樣的成交，算成同一個社區。排除親友、員工、債務、政府標售等特殊交易，透天不算。&#10;單價有兩種算法：含車位（預設）＝總價 ÷ 總坪數，中古屋最常這樣比；扣車位＝（總價 − 車位數 × 你設的車位價）÷（總坪數 − 車位坪數）。&#10;估值＝單價中位數 × 你的總坪數；扣車位模式是 × 不含車位的坪數，再加你設的車位價。按「帶入」會填進下面的目前估價。&#10;房價成長＝這個社區 3 年內成交單價的走勢（取對數做直線迴歸）換算成每年 %；社區成交不到 6 筆或不到 18 個月，改用同區同型態、完工 ±5 年的成交。可以篩房數、樓層（每 3 層一組），數字跟著重算；中位數預設不算 1 樓和有增建的。只是參考，實際成交還要看樓層、座向、屋況。&#10;社區名稱：臺南用市府的公寓大廈管理委員清冊自動對上；臺中的名冊沒有地址，打名稱後要自己從候選中挑；高雄沒有公開名冊，用路名找，可以自己取名字。&#10;你選的社區和取的名字只存在這台裝置和你匯出的設定檔。">ⓘ</span></summary>
-  <div id="cmIn"></div></details>
- <details class="p fd" data-k="saleIn" open><summary class="fs"><b>🏠 買進與出售條件</b></summary>
-  <div id="saleIn"></div></details>
 </div>
 
 
@@ -237,17 +237,17 @@ details>summary{transition:color .15s}
 <li><b>出租後房貸利率</b>：留空＝利率不變。有填時，在 🔑 出租頁上方的圖表會用<span style="color:var(--bad)">橘色虛線</span>畫出出租後的利率或月付，橘色三角形是開始出租的月份。</li>
 <li><b>打平月租</b>：月租至少要多少，出租才和自住一樣。</li>
 <li><b>🏘️ 租金行情</b>（預設收起來）：用你的房屋資料（行政區、房數、完工年份、建物型態、車位）從實價登錄找相近的租約，顯示月租中位數、一半落在的範圍和最相近的幾筆；樣本太少會自動放寬條件。「比對條件」可以改屋齡範圍、型態、期間、要不要排除社宅包租代管。按「帶入」填進市場月租或自己搬出後的房租。資料每月自動更新；有登錄的租約通常比實際行情低。</li>
-<li><b>🔁 轉貸試算</b>：填了出租後房貸利率就會出現「轉貸設定」：新貸款年限（可以重新拉長）、新寬限期、開辦費、代書費、設定規費（留空自動算）、其他費用、原貸違約金。會比較轉貸後出租和直接出租（違規）的月付、總利息，算出幾個月回本；轉貸費用也會攤在出租比較表的第一年。</li>
+<li><b>🔁 轉貸試算</b>（在 📝 出租條件最下面）：填了出租後房貸利率就會出現「轉貸設定」：新貸款年限（可以重新拉長）、新寬限期、開辦費、代書費、設定規費（留空自動算）、其他費用、原貸違約金。會比較轉貸後出租和直接出租（違規）的月付、總利息，算出幾個月回本；轉貸費用也會攤在出租比較表的第一年。</li>
 <li><b>出租方式比較</b>標題旁的 ⓘ：目前選的方式怎麼計算，以及新青安、自住優惠、房屋稅、地價稅的注意事項。</li>
 <li>出租對未來出售的影響（失去自住優惠）會在之後的 💸 出售頁計算。</li></ul></details>
 
 <details class="gds" id="g8"><summary>💸 出售</summary>
-<ul><li>在「🏠 買進與出售條件」填取得日（所有權登記日）、取得價、取得費用、設籍自住起日，以及預計出售日、售價（目前估價 × 每年成長，或直接填）、仲介費、土地漲價總數額。</li>
+<ul><li><b>🏘️ 社區實價</b>：實價登錄的買賣資料（臺中、臺南、高雄最近 3 年）。用社區名稱或路名找到你的社區，就會看到社區單價中位數、一半落在的範圍、照你坪數估的價格、同區同屋齡的對照，以及每一筆成交的門牌、樓層、坪數、總價。單價可以切換「含車位（總價 ÷ 總坪數）」或「扣車位（車位價自己設）」，也可以篩房數和樓層、點表頭排序。臺南接近一半的社區對得到名稱；臺中打名稱後要從同區、年份相近的候選中挑；高雄用路名找，可以自己取名字。按「帶入」可以把估值填進目前估價、把社區近 3 年的年化漲幅填進房價每年成長。</li>
+<li>在「🏠 買進與出售條件」填取得日（所有權登記日）、取得價、取得費用、設籍自住起日，以及預計出售日、售價（目前估價 × 每年成長，或直接填）、仲介費、土地漲價總數額。</li>
 <li><b>💸 出售試算</b>：比較一直自住和照出租計畫出租兩條路的房地合一稅與實拿。</li>
 <li><b>🧾 售出後實拿</b>：售價 → 出售費用 → 土地增值稅 → 房地合一稅 → 還清房貸 → 實拿。</li>
 <li><b>📋 房地合一稅明細</b>：課稅所得怎麼算、持有幾年、適用稅率或自住優惠；不能用自住優惠時會寫出原因。</li>
-<li><b>🗓️ 出售時點</b>：色帶是持有期間的稅率，墨青色框線是可以用自住優惠的期間；圖表是每個月賣出的實拿和稅，看哪個時間點賣最划算。</li>
-<li><b>🏘️ 社區實價</b>：實價登錄的買賣資料（臺中、臺南、高雄最近 3 年）。用社區名稱或路名找到你的社區，就會看到社區單價中位數、一半落在的範圍、照你坪數估的價格、同區同屋齡的對照，以及每一筆成交的門牌、樓層、坪數、總價。單價可以切換「含車位（總價 ÷ 總坪數）」或「扣車位（車位價自己設）」，也可以篩房數和樓層、點表頭排序。臺南接近一半的社區對得到名稱；臺中打名稱後要從同區、年份相近的候選中挑；高雄用路名找，可以自己取名字。按「帶入」可以把估值填進目前估價、把社區近 3 年的年化漲幅填進房價每年成長。</li></ul></details>
+<li><b>🗓️ 出售時點</b>：色帶是持有期間的稅率，墨青色框線是可以用自住優惠的期間；圖表是每個月賣出的實拿和稅，看哪個時間點賣最划算。</li></ul></details>
 
 <details class="gds" id="g4"><summary>📅 還款明細</summary>
 <ul><li>在 💰 房貸頁最下面（升息壓力測試下方）。每年一列：期數、利率、月付範圍、本金、利息、提前還款、年底餘額（萬元）。點一年可以展開每個月（元）。底色標出來的是今年。</li></ul></details>
@@ -307,20 +307,20 @@ details>summary{transition:color .15s}
 <button class="pri" style="margin-top:8px" onclick="closeGd()">我知道了</button></div></div>
 <div id="toast"></div>
 
-<script src="js/theme.js?v=202611251540"></script>
-<script src="js/icons.js?v=202611251540"></script>
-<script src="js/tip.js?v=202611251540"></script>
-<script src="js/policy.js?v=202611251540"></script>
-<script src="js/state.js?v=202611251540"></script>
-<script src="js/fields.js?v=202611251540"></script>
-<script src="js/engine.js?v=202611251540"></script>
-<script src="js/charts.js?v=202611251540"></script>
-<script src="js/ui-core.js?v=202611251540"></script>
-<script src="js/ui-loan.js?v=202611251540"></script>
-<script src="js/ui-rent.js?v=202611251540"></script>
-<script src="js/ui-comm.js?v=202611251540"></script>
-<script src="js/ui-market.js?v=202611251540"></script>
-<script src="js/ui-sale.js?v=202611251540"></script>
-<script src="js/ui-chart.js?v=202611251540"></script>
-<script src="js/main.js?v=202611251540"></script>
+<script src="js/theme.js?v=202611271901"></script>
+<script src="js/icons.js?v=202611271901"></script>
+<script src="js/tip.js?v=202611271901"></script>
+<script src="js/policy.js?v=202611271901"></script>
+<script src="js/state.js?v=202611271901"></script>
+<script src="js/fields.js?v=202611271901"></script>
+<script src="js/engine.js?v=202611271901"></script>
+<script src="js/charts.js?v=202611271901"></script>
+<script src="js/ui-core.js?v=202611271901"></script>
+<script src="js/ui-loan.js?v=202611271901"></script>
+<script src="js/ui-rent.js?v=202611271901"></script>
+<script src="js/ui-comm.js?v=202611271901"></script>
+<script src="js/ui-market.js?v=202611271901"></script>
+<script src="js/ui-sale.js?v=202611271901"></script>
+<script src="js/ui-chart.js?v=202611271901"></script>
+<script src="js/main.js?v=202611271901"></script>
 </body></html>
